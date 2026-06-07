@@ -1,4 +1,4 @@
-# zellij-agent-workflow
+# hive
 
 A keyboard-driven, multi-session workspace for running and monitoring Claude
 Code agents, built on **zellij**. Each project gets a named session with four
@@ -19,10 +19,12 @@ Tab 1 [claude]   Tab 2 [edit]   Tab 3 [git]    Tab 4 [fleet]
 | Path | What |
 |------|------|
 | `bin/proj`                  | fuzzy project switcher (fzf over `~/projects`) → opens/attaches a session |
-| `bin/zswitch`               | fzf picker to switch between **live** sessions (Alt-s; switch-only) |
+| `bin/zswitch`               | fzf picker to **open or switch** projects from inside zellij (Alt-s) |
+| `bin/zclose`                | close the current project but stay in zellij (Alt-w) |
+| `bin/hive-pane`             | launcher that titles each tab `"<tool> - <project>"` |
 | `bin/fleet`                 | local Claude agent overview (powers the fleet tab) |
-| `zellij/config.kdl`         | base config: `Alt-1..4` tab jumps, `Alt-s` switch, `Alt-d` detach |
-| `zellij/layouts/agent.kdl`  | the four-tab layout |
+| `zellij/config.kdl`         | base config: `Alt-1..4` tab jumps, `Alt-s` open/switch, `Alt-w` close, `Alt-d` detach |
+| `zellij/layouts/agent.kdl`  | the four-tab layout (each tab launched via `hive-pane`) |
 | `shell/agent-workflow.sh`   | sourced from `~/.bashrc`: PATH, `EDITOR`, fzf, `lg`/`agent` aliases, `PROJ_ROOTS` |
 | `git/attributes`            | optional global gitattributes (LF normalization for WSL/Windows) |
 | `install.sh` / `uninstall.sh` | symlink things into place / back out cleanly |
@@ -31,8 +33,8 @@ Tab 1 [claude]   Tab 2 [edit]   Tab 3 [git]    Tab 4 [fleet]
 ## Install
 
 ```bash
-git clone <your-remote>/zellij-agent-workflow ~/projects/zellij-agent-workflow
-cd ~/projects/zellij-agent-workflow
+git clone git@github.com:ooshka/hive.git ~/projects/hive
+cd ~/projects/hive
 
 # 1. Install the tools (see REQUIREMENTS.md). To preview what's missing:
 ./install.sh --check
@@ -44,10 +46,16 @@ cd ~/projects/zellij-agent-workflow
 source ~/.bashrc             # or open a new terminal
 ```
 
-`install.sh` is idempotent: it backs up any existing file to `<file>.bak`
-before linking, and adds the `~/.bashrc` source line only once. It never
-installs tools — that stays manual (see `REQUIREMENTS.md`). `./uninstall.sh`
-removes the links and the source block (restoring any `.bak`).
+`install.sh` is idempotent: it backs up any existing real file to `<file>.bak`
+before linking, and **rewrites** the `~/.bashrc` source line each run so the
+path always matches the repo's current location. It never installs tools —
+that stays manual (see `REQUIREMENTS.md`). `./uninstall.sh` removes the links
+and the source block (restoring any `.bak`).
+
+> **Moved or renamed the repo?** The symlinks and the `~/.bashrc` line hold the
+> repo's absolute path, so they break on a move. Just re-run `./install.sh`
+> (add `--git-config` if you use it) from the new location — it re-points
+> everything and cleans up the dangling links.
 
 ## Daily use
 
@@ -65,12 +73,14 @@ Inside a session:
 | `Alt-2` | editor (nvim) tab |
 | `Alt-3` | git (lazygit) tab |
 | `Alt-4` | fleet tab (agent overview, self-refreshes every 2s) |
-| `Alt-s` | switch between **live** sessions (fzf picker — never creates) |
+| `Alt-s` | **open or switch** projects (fzf picker — opens unopened projects too) |
+| `Alt-w` | **close** the current project, switching to another live one (stays in zellij) |
 | `Alt-d` | detach (session keeps running in the background) |
-| `Ctrl-q` | quit / end the session |
+| `Ctrl-q` | quit zellij entirely (drops to a shell) |
 
 Switching tabs is instant and never relaunches the tool — each tab's process
-keeps running in the background.
+keeps running in the background. Each tab's terminal title shows `<tool> - <project>`
+(e.g. `Claude - dev-globe`) so you can tell which project you're in.
 
 ## Managing sessions: leave alive vs. end
 
@@ -78,16 +88,18 @@ Every project is a named zellij session. The key distinction:
 
 | Action | How | Result |
 |--------|-----|--------|
-| **Switch to another live session** | `Alt-s` (fzf, switch-only) | Jumps there; the one you leave keeps running |
+| **Open a project** (new or existing) | `Alt-s` inside zellij, or `proj` from a shell | Switches to it; starts a fresh `agent` session if it wasn't running |
+| **Switch to another open project** | `Alt-s` | Jumps there; the one you leave keeps running |
 | **Leave it running (no switch)** | `Alt-d` (detach) | Session + processes keep running in the background |
-| **Create a session** | `proj <name>` **from a shell** (detach first if inside zellij) | New project session with the agent layout |
-| **End it** | `Ctrl-q`, close the terminal, or `zellij kill-session <name>` | Stops cleanly — no lingering `(EXITED)` stub (`session_serialization false`) |
+| **Close the current project** | `Alt-w` | Switches to another live session, then ends this one — stays in zellij |
+| **End + leave zellij** | `Ctrl-q`, close the terminal, or `zellij kill-session <name>` | Stops cleanly — no lingering `(EXITED)` stub (`session_serialization false`) |
 
 So "close a session without killing it" → **switch away** (`Alt-s`) or **detach**
-(`Alt-d`). Come back via `Alt-s`, `proj <name>`, or `zellij attach <name>`.
+(`Alt-d`). To **end** it but stay in hive, use `Alt-w`. Come back to a detached
+session via `Alt-s`, `proj <name>`, or `zellij attach <name>`.
 
-`proj` only *reattaches* to a **live** session; a closed/absent name is rebuilt
-**fresh** from `agent.kdl`. `proj` runs from a shell — *inside* zellij use `Alt-s`.
+Both `proj` (shell) and `Alt-s` (in-zellij) only *reattach* to a **live**
+session; a closed/absent name is rebuilt **fresh** from `agent.kdl`.
 
 > Changed `agent.kdl`? A *live* session keeps the old layout until you end it
 > (`Ctrl-q` / `zellij kill-session <name>`); then `proj <name>` rebuilds it fresh.
@@ -112,6 +124,10 @@ git branch, age, and current in-progress task (from `~/.claude/tasks/<sessionId>
 - **Clipboard** — the zellij `copy_command` uses `win32yank.exe` on WSL (provided
   by your neovim setup). On non-WSL machines, change it in `zellij/config.kdl`
   (see `REQUIREMENTS.md`).
+- **Terminal titles** — each tab launches via `hive-pane <label> <tool>`, which
+  sets the title to `"<label> - $ZELLIJ_SESSION_NAME"`. Change the labels in
+  `zellij/layouts/agent.kdl`. A tool that manages its own title (nvim with
+  `set title`) overrides it after launch; the claude/git/fleet tabs keep it.
 - **Line endings** — `./install.sh --git-config` installs `git/attributes`
   globally and sets `core.autocrlf=false`, keeping WSL/Windows checkouts free of
   CRLF/LF diff noise. Opt-in because it changes global git behavior.

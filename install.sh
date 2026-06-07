@@ -16,8 +16,11 @@ BIN_DIR="$HOME/.local/bin"
 ZELLIJ_DIR="$HOME/.config/zellij"
 GITCFG_DIR="$HOME/.config/git"
 BASHRC="$HOME/.bashrc"
-MARKER="# >>> zellij-agent-workflow >>>"
-MARKER_END="# <<< zellij-agent-workflow <<<"
+MARKER="# >>> hive >>>"
+MARKER_END="# <<< hive <<<"
+# Pre-rename markers, cleaned up on install so moving/renaming the repo self-heals.
+LEGACY_MARKER="# >>> zellij-agent-workflow >>>"
+LEGACY_MARKER_END="# <<< zellij-agent-workflow <<<"
 
 DO_GIT=0; CHECK_ONLY=0
 for arg in "$@"; do
@@ -70,24 +73,35 @@ fi
 echo "Installing from $REPO"
 echo
 echo "Linking scripts → $BIN_DIR"
-link "$REPO/bin/fleet"   "$BIN_DIR/fleet"
-link "$REPO/bin/proj"    "$BIN_DIR/proj"
-link "$REPO/bin/zswitch" "$BIN_DIR/zswitch"
+for f in "$REPO"/bin/*; do
+  link "$f" "$BIN_DIR/$(basename "$f")"
+done
 
 echo "Linking zellij config → $ZELLIJ_DIR"
 link "$REPO/zellij/config.kdl"        "$ZELLIJ_DIR/config.kdl"
 link "$REPO/zellij/layouts/agent.kdl" "$ZELLIJ_DIR/layouts/agent.kdl"
 
 echo "Wiring up $BASHRC"
-if grep -qF "$MARKER" "$BASHRC" 2>/dev/null; then
-  dim "  = source line already present"
+# Rewrite the block on every run so the path always matches the repo's current
+# location (renaming/moving the repo then re-running install.sh self-heals).
+# Strip any current- or legacy-marker block, trim trailing blanks, re-append.
+touch "$BASHRC"
+had_block=0
+grep -qF "$MARKER" "$BASHRC" && had_block=1
+grep -qF "$LEGACY_MARKER" "$BASHRC" && had_block=1
+tmp="$(mktemp)"
+sed -e "/$MARKER/,/$MARKER_END/d" -e "/$LEGACY_MARKER/,/$LEGACY_MARKER_END/d" "$BASHRC" \
+  | awk 'NF{last=NR} {line[NR]=$0} END{for(i=1;i<=last;i++) print line[i]}' > "$tmp"
+{
+  echo ""
+  echo "$MARKER"
+  echo "source \"$REPO/shell/agent-workflow.sh\""
+  echo "$MARKER_END"
+} >> "$tmp"
+mv "$tmp" "$BASHRC"
+if [ "$had_block" -eq 1 ]; then
+  green "  + refreshed source block → $REPO/shell/agent-workflow.sh"
 else
-  {
-    echo ""
-    echo "$MARKER"
-    echo "source \"$REPO/shell/agent-workflow.sh\""
-    echo "$MARKER_END"
-  } >> "$BASHRC"
   green "  + added source line to $BASHRC"
 fi
 

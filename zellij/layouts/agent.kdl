@@ -6,33 +6,38 @@
 //
 //     Alt-1 claude   Alt-2 nvim (edit)   Alt-3 lazygit (git)   Alt-4 fleet
 //
-// The fleet tab self-refreshes every 2s, so it's always current when you
-// switch to it. Panes inherit the cwd zellij is launched from.
+// Each tool launches through `hive-pane <label> <cmd>`, which sets the terminal
+// title to "<label> - <project>" (project = the zellij session name) so you can
+// tell which project you're in, e.g. "Claude - dev-globe". The fleet tab
+// self-refreshes every 2s. Panes inherit the cwd zellij is launched from.
 
 layout {
     tab name="claude" focus=true {
         pane {
             name "claude"
-            command "claude"
+            command "hive-pane"
+            args "Claude" "claude"
         }
     }
     tab name="edit" {
         pane {
             name "editor"
-            command "nvim"
+            command "hive-pane"
+            args "Editor" "nvim"
         }
     }
     tab name="git" {
         pane {
             name "lazygit"
-            command "lazygit"
+            command "hive-pane"
+            args "Git" "lazygit"
         }
     }
     tab name="fleet" {
         pane {
             name "fleet"
-            command "fleet"
-            args "--watch"
+            command "hive-pane"
+            args "Fleet" "fleet" "--watch"
         }
     }
 }

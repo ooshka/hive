@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+# zclose — close the CURRENT project (kill its zellij session) but stay inside
+# zellij by switching to another live session first (bound to Alt-w).
+#
+# Unlike Ctrl-q (which quits zellij entirely and drops you to a shell), this
+# leaves you in another open project. If there's only one other live session it
+# jumps straight there; if several, it asks which to land on. If there are none,
+# it cancels and tells you to open one first (Alt-s) or quit with Ctrl-q.
+set -euo pipefail
+
+if [ -z "${ZELLIJ:-}" ]; then
+  echo "zclose: only works inside a zellij session." >&2
+  exit 1
+fi
+
+current="${ZELLIJ_SESSION_NAME:-}"
+
+mapfile -t others < <(
+  zellij list-sessions --no-formatting 2>/dev/null \
+    | grep 'Created' | grep -v 'EXITED' | awk '{print $1}' \
+    | grep -vxF "$current" || true
+)
+
+if [ "${#others[@]}" -eq 0 ]; then
+  echo "Closing '$current' would leave no live session to land on."
+  echo "Open another first with Alt-s, or quit zellij entirely with Ctrl-q."
+  echo
+  read -rsn1 -p "(press any key to cancel)"
+  exit 0
+fi
+
+if [ "${#others[@]}" -eq 1 ]; then
+  target="${others[0]}"
+else
+  target="$(printf '%s\n' "${others[@]}" \
+            | fzf --prompt "close '$current' → land on> " --height 100% --reverse --no-multi)"
+  [ -z "${target:-}" ] && exit 0
+fi
+
+# Switch the client to the destination, THEN kill the session we left. The kill
+# runs in the now-backgrounded old session; switching first keeps us in zellij.
+# (The brief sleep lets the client finish switching before its session dies.)
+zellij action switch-session "$target"
+sleep 0.4
+zellij kill-session "$current" >/dev/null 2>&1 || true

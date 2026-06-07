@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# hive-pane — set the terminal title to "<label> - <project>" then exec a tool.
+#
+#   hive-pane <label> <command> [args...]
+#
+# The agent layout runs each tab through this so the terminal title shows which
+# project (zellij session) you're in, e.g. "Claude - dev-globe". zellij forwards
+# the focused pane's title to the host terminal, so switching tabs updates it.
+#
+# Note: a program that manages its own title (e.g. nvim with `set title`) will
+# overwrite this once it starts; tabs whose tool leaves the title alone
+# (claude / lazygit / fleet) keep showing "<label> - <project>".
+set -euo pipefail
+
+label="$1"; shift
+project="${ZELLIJ_SESSION_NAME:-shell}"
+
+# OSC 0 = set icon name + window title. \007 (BEL) terminates the sequence.
+printf '\033]0;%s - %s\007' "$label" "$project"
+
+exec "$@"

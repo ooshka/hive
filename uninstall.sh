@@ -9,8 +9,10 @@ BIN_DIR="$HOME/.local/bin"
 ZELLIJ_DIR="$HOME/.config/zellij"
 GITCFG_DIR="$HOME/.config/git"
 BASHRC="$HOME/.bashrc"
-MARKER="# >>> zellij-agent-workflow >>>"
-MARKER_END="# <<< zellij-agent-workflow <<<"
+MARKER="# >>> hive >>>"
+MARKER_END="# <<< hive <<<"
+LEGACY_MARKER="# >>> zellij-agent-workflow >>>"
+LEGACY_MARKER_END="# <<< zellij-agent-workflow <<<"
 
 dim() { printf '\033[2m%s\033[0m\n' "$1"; }
 
@@ -26,19 +28,19 @@ unlink_one() {
 }
 
 echo "Uninstalling links that point into $REPO"
-unlink_one "$BIN_DIR/fleet"
-unlink_one "$BIN_DIR/proj"
-unlink_one "$BIN_DIR/zswitch"
+for f in "$REPO"/bin/*; do
+  unlink_one "$BIN_DIR/$(basename "$f")"
+done
 unlink_one "$ZELLIJ_DIR/config.kdl"
 unlink_one "$ZELLIJ_DIR/layouts/agent.kdl"
 unlink_one "$GITCFG_DIR/attributes"
 
-# Strip the marker block from ~/.bashrc, if present.
-if grep -qF "$MARKER" "$BASHRC" 2>/dev/null; then
+# Strip the marker block from ~/.bashrc (current or legacy markers), if present.
+if grep -qF "$MARKER" "$BASHRC" 2>/dev/null || grep -qF "$LEGACY_MARKER" "$BASHRC" 2>/dev/null; then
   tmp="$(mktemp)"
-  sed "/$MARKER/,/$MARKER_END/d" "$BASHRC" > "$tmp"
-  # collapse the trailing blank line we inserted before the marker
-  cp "$tmp" "$BASHRC"; rm -f "$tmp"
+  sed -e "/$MARKER/,/$MARKER_END/d" -e "/$LEGACY_MARKER/,/$LEGACY_MARKER_END/d" "$BASHRC" \
+    | awk 'NF{last=NR} {line[NR]=$0} END{for(i=1;i<=last;i++) print line[i]}' > "$tmp"
+  mv "$tmp" "$BASHRC"
   echo "  - removed source block from $BASHRC"
 else
   dim "  · no source block in $BASHRC"

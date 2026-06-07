@@ -28,11 +28,26 @@ keybinds {
         // Alt-d -> detach (leave the session running in the background).
         bind "Alt d" { Detach; }
 
-        // Alt-s -> switch between LIVE sessions (fzf picker, switch-only — it
-        // never creates). Switching away leaves the old session running.
-        // Create new sessions from a shell with `proj`.
+        // Alt-s -> open OR switch projects (fzf picker). Lists projects +
+        // live sessions; picking an unopened project creates a fresh `agent`
+        // session and switches to it, all without leaving zellij. Switching
+        // away leaves the old session running.
         bind "Alt s" {
             Run "zswitch" {
+                floating true
+                close_on_exit true
+                width "50%"
+                height "55%"
+                x "25%"
+                y "20%"
+            }
+        }
+
+        // Alt-w -> close the current project (kill its session) but stay in
+        // zellij by switching to another live session first. Unlike Ctrl-q,
+        // which quits zellij entirely.
+        bind "Alt w" {
+            Run "zclose" {
                 floating true
                 close_on_exit true
                 width "50%"
