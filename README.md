@@ -47,15 +47,9 @@ source ~/.bashrc             # or open a new terminal
 ```
 
 `install.sh` is idempotent: it backs up any existing real file to `<file>.bak`
-before linking, and **rewrites** the `~/.bashrc` source line each run so the
-path always matches the repo's current location. It never installs tools —
-that stays manual (see `REQUIREMENTS.md`). `./uninstall.sh` removes the links
-and the source block (restoring any `.bak`).
-
-> **Moved or renamed the repo?** The symlinks and the `~/.bashrc` line hold the
-> repo's absolute path, so they break on a move. Just re-run `./install.sh`
-> (add `--git-config` if you use it) from the new location — it re-points
-> everything and cleans up the dangling links.
+before linking, and adds the `~/.bashrc` source line only once. It never
+installs tools — that stays manual (see `REQUIREMENTS.md`). `./uninstall.sh`
+removes the links and the source block (restoring any `.bak`).
 
 ## Daily use
 

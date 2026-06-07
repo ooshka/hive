@@ -11,8 +11,6 @@ GITCFG_DIR="$HOME/.config/git"
 BASHRC="$HOME/.bashrc"
 MARKER="# >>> hive >>>"
 MARKER_END="# <<< hive <<<"
-LEGACY_MARKER="# >>> zellij-agent-workflow >>>"
-LEGACY_MARKER_END="# <<< zellij-agent-workflow <<<"
 
 dim() { printf '\033[2m%s\033[0m\n' "$1"; }
 
@@ -35,12 +33,11 @@ unlink_one "$ZELLIJ_DIR/config.kdl"
 unlink_one "$ZELLIJ_DIR/layouts/agent.kdl"
 unlink_one "$GITCFG_DIR/attributes"
 
-# Strip the marker block from ~/.bashrc (current or legacy markers), if present.
-if grep -qF "$MARKER" "$BASHRC" 2>/dev/null || grep -qF "$LEGACY_MARKER" "$BASHRC" 2>/dev/null; then
+# Strip the marker block from ~/.bashrc, if present.
+if grep -qF "$MARKER" "$BASHRC" 2>/dev/null; then
   tmp="$(mktemp)"
-  sed -e "/$MARKER/,/$MARKER_END/d" -e "/$LEGACY_MARKER/,/$LEGACY_MARKER_END/d" "$BASHRC" \
-    | awk 'NF{last=NR} {line[NR]=$0} END{for(i=1;i<=last;i++) print line[i]}' > "$tmp"
-  mv "$tmp" "$BASHRC"
+  sed "/$MARKER/,/$MARKER_END/d" "$BASHRC" > "$tmp"
+  cp "$tmp" "$BASHRC"; rm -f "$tmp"
   echo "  - removed source block from $BASHRC"
 else
   dim "  · no source block in $BASHRC"
