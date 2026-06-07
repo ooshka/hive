@@ -6,9 +6,9 @@
 //
 //     Alt-1 claude   Alt-2 nvim (edit)   Alt-3 lazygit (git)   Alt-4 fleet
 //
-// Each tool launches through `hive-pane <label> <cmd>`, which sets the terminal
-// title to "<label> - <project>" (project = the zellij session name) so you can
-// tell which project you're in, e.g. "Claude - dev-globe". The fleet tab
+// Each tool launches through `hive-pane <label> <cmd>`, which renames the pane
+// to "<label> - <project>" (project = the zellij session name) so you can tell
+// which project you're in, e.g. "Claude - dev-globe". The fleet tab
 // self-refreshes every 2s. Panes inherit the cwd zellij is launched from.
 
 layout {

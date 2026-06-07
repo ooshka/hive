@@ -57,8 +57,7 @@ if [ -z "$menu" ]; then
 fi
 
 pick="$(printf '%s' "$menu" | fzf --with-nth=1 --delimiter=$'\t' \
-        --prompt 'open/switch> ' --height 100% --reverse --no-multi \
-        --header '● = already running   |   others start a fresh agent session')"
+        --prompt 'open/switch> ' --height 100% --reverse --no-multi)"
 [ -z "${pick:-}" ] && exit 0
 
 name="$(printf '%s' "$pick" | cut -f1 | sed 's/^[● ]*//')"

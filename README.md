@@ -118,10 +118,11 @@ git branch, age, and current in-progress task (from `~/.claude/tasks/<sessionId>
 - **Clipboard** — the zellij `copy_command` uses `win32yank.exe` on WSL (provided
   by your neovim setup). On non-WSL machines, change it in `zellij/config.kdl`
   (see `REQUIREMENTS.md`).
-- **Terminal titles** — each tab launches via `hive-pane <label> <tool>`, which
-  sets the title to `"<label> - $ZELLIJ_SESSION_NAME"`. Change the labels in
-  `zellij/layouts/agent.kdl`. A tool that manages its own title (nvim with
-  `set title`) overrides it after launch; the claude/git/fleet tabs keep it.
+- **Pane titles** — each tab launches via `hive-pane <label> <tool>`, which
+  renames the zellij pane to `"<label> - $ZELLIJ_SESSION_NAME"` (e.g.
+  `Claude - dev-globe`) and sets the host terminal's window title to match.
+  Renaming pins the pane frame label, so the tool can't clobber it. Change the
+  labels in `zellij/layouts/agent.kdl`.
 - **Line endings** — `./install.sh --git-config` installs `git/attributes`
   globally and sets `core.autocrlf=false`, keeping WSL/Windows checkouts free of
   CRLF/LF diff noise. Opt-in because it changes global git behavior.
