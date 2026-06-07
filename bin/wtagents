@@ -37,7 +37,7 @@ out="$(printf '%s\n' "$rows" | fzf --delimiter='\t' --with-nth=1 \
         --prompt 'worktree agent> ' --height 100% --reverse --no-multi \
         --expect=ctrl-k,ctrl-e \
         --preview 'wtlog {2} --no-follow' --preview-window 'right,58%,wrap' \
-        --header 'enter=tail log   ctrl-k=kill   ctrl-e=nvim edit')"
+        --header 'enter=log (q closes)   ctrl-k=kill   ctrl-e=nvim edit')"
 [ -z "${out:-}" ] && exit 0
 
 key="$(printf '%s' "$out" | head -1)"
@@ -58,7 +58,10 @@ case "$key" in
   ctrl-e)
     exec wtedit "$path"
     ;;
-  *)  # enter → live log tail in a floating pane (Ctrl-c the tail to close it)
-    exec zellij action new-pane --floating --close-on-exit --name "log:$name" -- wtlog "$path"
+  *)  # enter → live log in a floating pane, viewed through a pager so it has a
+      # clean exit: `q` quits (closes the pane), Ctrl-c pauses follow to scroll.
+      # `$0` carries the path so it's quote-safe.
+    exec zellij action new-pane --floating --close-on-exit --name "log:$name" -- \
+      bash -lc 'wtlog "$0" | less -R +F' "$path"
     ;;
 esac

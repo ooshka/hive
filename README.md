@@ -135,7 +135,7 @@ the worktree agents with a **live log preview** and actions:
 
 | Key | Action |
 |-----|--------|
-| `enter`  | open the agent's log — live tail, readable stream-json (`Ctrl-c` to close the pane) |
+| `enter`  | open the agent's log — live tail, readable stream-json, in a pager (`q` closes the pane; `Ctrl-c` pauses follow to scroll/search) |
 | `ctrl-k` | **kill** the agent (`pkill -f <session-id>`, with confirmation) |
 | `ctrl-e` | open **nvim** on the worktree in a floating pane |
 
