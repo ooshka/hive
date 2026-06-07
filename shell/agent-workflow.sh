@@ -11,6 +11,7 @@ esac
 
 # Editor
 export EDITOR=nvim
+export VISUAL=nvim
 
 # fzf shell integration (completion + Ctrl-T / Ctrl-R / Alt-C)
 command -v fzf >/dev/null && eval "$(fzf --bash)"
