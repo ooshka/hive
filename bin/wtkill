@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+# wtkill — stop a worktree agent (SIGTERM its session, SIGKILL fallback).
+#
+#   wtkill <worktree-path>
+#
+# Uses the agent's deterministic session id (from .claude/agent-session) with
+# `pkill -f <session-id>` — the stop convention the `worktree` skill documents.
+# Leaves the worktree, branch, and log on disk so you can inspect/clean up after.
+set -euo pipefail
+
+path="${1:?usage: wtkill <worktree-path>}"
+sess_file="$path/.claude/agent-session"
+[ -f "$sess_file" ] || { echo "wtkill: no agent-session at $sess_file" >&2; exit 1; }
+
+# Pull the session id (JSON breadcrumb or key=value line).
+sid="$(python3 - "$sess_file" <<'PY'
+import json, sys
+raw = open(sys.argv[1]).read()
+sid = None
+try:
+    o = json.loads(raw)
+    if isinstance(o, dict): sid = o.get("session_id") or o.get("sessionId")
+except Exception:
+    pass
+if not sid:
+    for line in raw.splitlines():
+        if line.strip().startswith("session_id="):
+            sid = line.split("=", 1)[1].strip(); break
+print(sid or "")
+PY
+)"
+[ -n "$sid" ] || { echo "wtkill: could not determine session id from $sess_file" >&2; exit 1; }
+
+if ! pgrep -f "$sid" >/dev/null 2>&1; then
+  echo "wtkill: no running agent for session $sid (already stopped)."
+  exit 0
+fi
+
+echo "Stopping agent $sid (SIGTERM)…"
+pkill -TERM -f "$sid" || true
+for _ in 1 2 3 4 5; do
+  pgrep -f "$sid" >/dev/null 2>&1 || { echo "Stopped."; exit 0; }
+  sleep 0.4
+done
+echo "Still alive after SIGTERM; sending SIGKILL…"
+pkill -KILL -f "$sid" || true
+sleep 0.3
+pgrep -f "$sid" >/dev/null 2>&1 && echo "wtkill: WARNING agent $sid still present." >&2 || echo "Killed."

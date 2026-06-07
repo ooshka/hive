@@ -56,5 +56,18 @@ keybinds {
                 y "20%"
             }
         }
+
+        // Alt-g -> manage worktree (a"g"ent) sub-agents: fzf picker with a live
+        // log preview; enter tails the log, ctrl-k kills, ctrl-e opens nvim.
+        bind "Alt g" {
+            Run "wtagents" {
+                floating true
+                close_on_exit true
+                width "85%"
+                height "80%"
+                x "7%"
+                y "8%"
+            }
+        }
     }
 }

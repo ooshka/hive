@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+# wtedit — open nvim on a worktree in a floating zellij pane.
+#
+#   wtedit <worktree-path>
+#
+# Worktree agents aren't interactive, so there's no claude pane to open — this is
+# just a quick editor float to read/tweak what the agent produced. lazygit (Alt-3)
+# already shows worktrees in the repo's git view, so no separate git pane either.
+set -euo pipefail
+
+path="${1:?usage: wtedit <worktree-path>}"
+[ -d "$path" ] || { echo "wtedit: not a directory: $path" >&2; exit 1; }
+name="$(basename "$path")"
+
+if [ -n "${ZELLIJ:-}" ]; then
+  exec zellij action new-pane --floating --cwd "$path" --name "edit:$name" --close-on-exit -- nvim
+else
+  cd "$path" && exec nvim
+fi

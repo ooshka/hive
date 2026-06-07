@@ -1,31 +1,50 @@
 #!/usr/bin/env python3
 """fleet — local Claude Code agent overview.
 
-Reads ~/.claude/sessions/<pid>.json (one per running Claude process), prunes
-dead PIDs, and enriches each with git branch + current task, then prints a table.
+Reads ~/.claude/sessions/<pid>.json (one per running Claude process) for
+interactive sessions, and the worktree-agent tree (see `worktree` skill) for
+headless background agents, and prints them grouped by project — interactive
+sessions with their worktree agents nested beneath.
 
   fleet            print once
   fleet --watch    refresh every 2s (used by the zellij "fleet" tab)
+  fleet --json     machine-readable {sessions, worktrees} (consumed by wtagents)
 
-NOTE: this shows LOCAL sessions only. Scheduled / remote agents run on
-Anthropic's infrastructure and are not on disk — use the desktop app for those.
+Worktree agents live at $WORKTREE_BASE/<repo>/<name>/ (default
+~/projects/worktrees), each with .claude/agent-session (session id + log path)
+and .claude/agent.log (newline-delimited stream-json). Liveness is `pgrep -f
+<session-id>`, matching how the skill stops them (`pkill -f <session-id>`).
+
+NOTE: LOCAL sessions only. Scheduled / remote agents run on Anthropic's
+infrastructure and are not on disk — use the desktop app for those.
 """
 import os, sys, json, time, glob, subprocess
 
 HOME = os.path.expanduser("~")
 SESS_DIR = os.path.join(HOME, ".claude", "sessions")
 TASKS_DIR = os.path.join(HOME, ".claude", "tasks")
+WT_BASE = os.environ.get("WORKTREE_BASE", os.path.join(HOME, "projects", "worktrees"))
 
 # ── ANSI ──────────────────────────────────────────────────────────────────
 def c(code, s): return f"\033[{code}m{s}\033[0m" if sys.stdout.isatty() else s
 DIM, BOLD = "2", "1"
-GREEN, YELLOW, CYAN = "32", "33", "36"
+GREEN, YELLOW, CYAN, RED = "32", "33", "36", "31"
 
 def alive(pid):
     try:
         os.kill(int(pid), 0)
         return True
     except (OSError, ValueError):
+        return False
+
+def proc_alive(needle):
+    """True if any process command line contains `needle` (pgrep -f)."""
+    if not needle:
+        return False
+    try:
+        r = subprocess.run(["pgrep", "-f", needle], capture_output=True, timeout=1.5)
+        return r.returncode == 0
+    except Exception:
         return False
 
 def human_age(ms):
@@ -58,21 +77,20 @@ def current_task(session_id):
     d = os.path.join(TASKS_DIR, session_id)
     if not os.path.isdir(d):
         return "—"
-    best = None
     for f in glob.glob(os.path.join(d, "[0-9]*.json")):
         try:
             t = json.load(open(f, encoding="utf-8"))
         except Exception:
             continue
         if t.get("status") == "in_progress":
-            best = t.get("activeForm") or t.get("subject")
-            break
-    return best or "—"
+            return t.get("activeForm") or t.get("subject") or "—"
+    return "—"
 
 def trunc(s, n):
-    s = str(s)
+    s = str(s).replace("\n", " ").replace("\t", " ").strip()
     return s if len(s) <= n else s[: n - 1] + "…"
 
+# ── interactive sessions ────────────────────────────────────────────────────
 def collect():
     rows = []
     here = os.path.realpath(os.getcwd())
@@ -97,37 +115,158 @@ def collect():
         })
     return rows
 
+# ── worktree agents ──────────────────────────────────────────────────────────
+def _tail_events(log, maxbytes=65536):
+    """Parse the last chunk of a stream-json log into a list of events."""
+    try:
+        sz = os.path.getsize(log)
+        with open(log, "rb") as fh:
+            if sz > maxbytes:
+                fh.seek(-maxbytes, os.SEEK_END)
+            data = fh.read().decode("utf-8", "replace")
+    except Exception:
+        return []
+    evs = []
+    for line in data.splitlines():
+        line = line.strip()
+        if not line.startswith("{"):
+            continue  # tolerate the leading stdin warning / non-JSON noise
+        try:
+            evs.append(json.loads(line))
+        except Exception:
+            continue
+    return evs
+
+def _agent_activity(events):
+    for e in reversed(events):
+        t = e.get("type")
+        if t == "assistant":
+            for b in reversed(e.get("message", {}).get("content", [])):
+                if b.get("type") == "text" and b.get("text", "").strip():
+                    return b["text"].strip()
+                if b.get("type") == "tool_use":
+                    return f"⚙ {b.get('name', '?')}"
+        elif t == "result":
+            return (e.get("result") or "").strip() or "(done)"
+    return "—"
+
+def _parse_session_file(path):
+    """Return (session_id, log). Tolerates a JSON breadcrumb or key=value lines."""
+    try:
+        raw = open(path, encoding="utf-8").read()
+    except Exception:
+        return None, None
+    try:
+        obj = json.loads(raw)
+        if isinstance(obj, dict):
+            return (obj.get("session_id") or obj.get("sessionId")), obj.get("log")
+    except Exception:
+        pass
+    sid = log = None
+    for line in raw.splitlines():
+        line = line.strip()
+        if line.startswith("session_id="):
+            sid = line.split("=", 1)[1].strip()
+        elif line.startswith("log="):
+            log = line.split("=", 1)[1].strip()
+    return sid, log
+
+def collect_worktrees():
+    agents = []
+    pattern = os.path.join(WT_BASE, "*", "*", ".claude", "agent-session")
+    for sess_file in sorted(glob.glob(pattern)):
+        wt_path = os.path.dirname(os.path.dirname(sess_file))
+        name = os.path.basename(wt_path)
+        repo = os.path.basename(os.path.dirname(wt_path))
+        sid, log = _parse_session_file(sess_file)
+        if not log:
+            log = os.path.join(wt_path, ".claude", "agent.log")
+        running = proc_alive(sid)
+        events = _tail_events(log) if os.path.exists(log) else []
+        if running:
+            status = "running"
+        else:
+            status = "stopped"
+            for e in reversed(events):
+                if e.get("type") == "result":
+                    status = "failed" if e.get("is_error") else "done"
+                    break
+        try:
+            started = os.path.getmtime(sess_file) * 1000
+        except Exception:
+            started = 0
+        agents.append({
+            "repo": repo, "name": name, "branch": f"wt/{name}",
+            "path": wt_path, "session_id": sid or "", "log": log,
+            "status": status, "age": human_age(started),
+            "activity": _agent_activity(events),
+        })
+    return agents
+
+# ── rendering ────────────────────────────────────────────────────────────────
+def _agent_dot(status):
+    return {
+        "running": c(GREEN, "●"),
+        "done":    c(GREEN, "✓"),
+        "failed":  c(RED, "✗"),
+    }.get(status, c(DIM, "·"))
+
 def render():
-    rows = collect()
-    out = []
-    out.append(c(BOLD, "Claude fleet — local sessions") +
-               c(DIM, f"   {time.strftime('%H:%M:%S')}"))
-    if not rows:
-        out.append(c(DIM, "  (no local Claude sessions running)"))
+    sessions = collect()
+    agents = collect_worktrees()
+
+    # Group both by project/repo name, preserving first-seen order.
+    groups, order = {}, []
+    def grp(k):
+        if k not in groups:
+            groups[k] = {"sessions": [], "agents": []}
+            order.append(k)
+        return groups[k]
+    for s in sessions:
+        grp(s["project"])["sessions"].append(s)
+    for a in agents:
+        grp(a["repo"])["agents"].append(a)
+
+    out = [c(BOLD, "Claude fleet — local sessions") + c(DIM, f"   {time.strftime('%H:%M:%S')}")]
+    if not order:
+        out.append(c(DIM, "  (no local Claude sessions or worktree agents running)"))
         out.append(c(DIM, "  Scheduled/remote agents → Claude desktop app."))
         return "\n".join(out)
-    cols = (f"{'PROJECT':<16} {'STATUS':<7} {'KIND':<11} {'BRANCH':<14} "
-            f"{'AGE':>6}  {'CURRENT TASK':<30} {'ATTACH'}")
-    out.append(c(BOLD, "    " + cols))  # 4-col prefix: dot + sp + mark + sp
-    for r in rows:
-        dot = c(GREEN, "●") if r["status"] == "busy" else c(YELLOW, "○") if r["status"] == "idle" else "·"
-        mark = c(CYAN, "→") if r["here"] else " "
-        attach = f"proj {r['project']}"
-        body = (f"{trunc(r['project'],16):<16} {r['status']:<7} {trunc(r['kind'],11):<11} "
-                f"{trunc(r['branch'],14):<14} {r['age']:>6}  {trunc(r['task'],30):<30} {c(DIM, attach)}")
-        out.append(f"{dot} {mark} {body}")
+
+    cols = (f"{'PROJECT':<16} {'STATUS':<7} {'KIND':<11} {'BRANCH':<16} "
+            f"{'AGE':>6}  {'CURRENT TASK / ACTIVITY':<34}")
+    out.append(c(BOLD, "    " + cols))
+    for proj in order:
+        g = groups[proj]
+        if g["sessions"]:
+            for r in g["sessions"]:
+                dot = c(GREEN, "●") if r["status"] == "busy" else c(YELLOW, "○") if r["status"] == "idle" else "·"
+                mark = c(CYAN, "→") if r["here"] else " "
+                body = (f"{trunc(r['project'],16):<16} {r['status']:<7} {trunc(r['kind'],11):<11} "
+                        f"{trunc(r['branch'],16):<16} {r['age']:>6}  {trunc(r['task'],34):<34}")
+                out.append(f"{dot} {mark} {body}")
+        else:
+            out.append(f"·   {trunc(proj,16):<16} {c(DIM, '(no live session)')}")
+        for a in g["agents"]:
+            out.append(f"      └ {_agent_dot(a['status'])} {trunc(a['branch'],18):<18} "
+                       f"{a['status']:<8} {a['age']:>6}  {c(DIM, trunc(a['activity'],36))}")
+
     out.append("")
-    out.append(c(DIM, "  → = this session   ● busy  ○ idle   |   remote/scheduled agents: desktop app"))
+    out.append(c(DIM, "  → this session  ● busy/running  ○ idle  ✓ done  ✗ failed  · stopped"
+                     "   |   Alt-g: manage worktree agents"))
     return "\n".join(out)
 
 def main():
-    watch = "--watch" in sys.argv[1:]
-    if not watch:
+    args = sys.argv[1:]
+    if "--json" in args:
+        print(json.dumps({"sessions": collect(), "worktrees": collect_worktrees()}, indent=2))
+        return
+    if "--watch" not in args:
         print(render())
         return
     try:
         while True:
-            sys.stdout.write("\033[2J\033[H")  # clear + home
+            sys.stdout.write("\033[2J\033[H")
             sys.stdout.write(render() + "\n")
             sys.stdout.flush()
             time.sleep(2)
