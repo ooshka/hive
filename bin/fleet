@@ -1,0 +1,138 @@
+#!/usr/bin/env python3
+"""fleet — local Claude Code agent overview.
+
+Reads ~/.claude/sessions/<pid>.json (one per running Claude process), prunes
+dead PIDs, and enriches each with git branch + current task, then prints a table.
+
+  fleet            print once
+  fleet --watch    refresh every 2s (used by the zellij "fleet" tab)
+
+NOTE: this shows LOCAL sessions only. Scheduled / remote agents run on
+Anthropic's infrastructure and are not on disk — use the desktop app for those.
+"""
+import os, sys, json, time, glob, subprocess
+
+HOME = os.path.expanduser("~")
+SESS_DIR = os.path.join(HOME, ".claude", "sessions")
+TASKS_DIR = os.path.join(HOME, ".claude", "tasks")
+
+# ── ANSI ──────────────────────────────────────────────────────────────────
+def c(code, s): return f"\033[{code}m{s}\033[0m" if sys.stdout.isatty() else s
+DIM, BOLD = "2", "1"
+GREEN, YELLOW, CYAN = "32", "33", "36"
+
+def alive(pid):
+    try:
+        os.kill(int(pid), 0)
+        return True
+    except (OSError, ValueError):
+        return False
+
+def human_age(ms):
+    if not ms:
+        return "—"
+    secs = max(0, int(time.time() - ms / 1000))
+    if secs < 60:   return f"{secs}s"
+    if secs < 3600: return f"{secs//60}m"
+    if secs < 86400:return f"{secs//3600}h{(secs%3600)//60:02d}m"
+    return f"{secs//86400}d{(secs%86400)//3600:02d}h"
+
+def git_branch(cwd):
+    if not cwd or not os.path.isdir(cwd):
+        return "—"
+    try:
+        r = subprocess.run(["git", "-C", cwd, "symbolic-ref", "--short", "HEAD"],
+                           capture_output=True, text=True, timeout=1.5)
+        if r.returncode == 0 and r.stdout.strip():
+            return r.stdout.strip()
+        r = subprocess.run(["git", "-C", cwd, "rev-parse", "--short", "HEAD"],
+                           capture_output=True, text=True, timeout=1.5)
+        if r.returncode == 0 and r.stdout.strip():
+            return r.stdout.strip()
+    except Exception:
+        pass
+    return "—"
+
+def current_task(session_id):
+    """Return the activeForm/subject of the in-progress task for this session."""
+    d = os.path.join(TASKS_DIR, session_id)
+    if not os.path.isdir(d):
+        return "—"
+    best = None
+    for f in glob.glob(os.path.join(d, "[0-9]*.json")):
+        try:
+            t = json.load(open(f, encoding="utf-8"))
+        except Exception:
+            continue
+        if t.get("status") == "in_progress":
+            best = t.get("activeForm") or t.get("subject")
+            break
+    return best or "—"
+
+def trunc(s, n):
+    s = str(s)
+    return s if len(s) <= n else s[: n - 1] + "…"
+
+def collect():
+    rows = []
+    here = os.path.realpath(os.getcwd())
+    for f in sorted(glob.glob(os.path.join(SESS_DIR, "*.json"))):
+        try:
+            s = json.load(open(f, encoding="utf-8"))
+        except Exception:
+            continue
+        pid = s.get("pid")
+        if not alive(pid):
+            continue  # stale file from a crashed/closed session
+        cwd = s.get("cwd", "")
+        rows.append({
+            "project": os.path.basename(cwd.rstrip("/")) or cwd or "?",
+            "status":  s.get("status", "?"),
+            "kind":    s.get("kind", "?"),
+            "branch":  git_branch(cwd),
+            "age":     human_age(s.get("startedAt")),
+            "task":    current_task(s.get("sessionId", "")),
+            "pid":     pid,
+            "here":    os.path.realpath(cwd) == here if cwd else False,
+        })
+    return rows
+
+def render():
+    rows = collect()
+    out = []
+    out.append(c(BOLD, "Claude fleet — local sessions") +
+               c(DIM, f"   {time.strftime('%H:%M:%S')}"))
+    if not rows:
+        out.append(c(DIM, "  (no local Claude sessions running)"))
+        out.append(c(DIM, "  Scheduled/remote agents → Claude desktop app."))
+        return "\n".join(out)
+    cols = (f"{'PROJECT':<16} {'STATUS':<7} {'KIND':<11} {'BRANCH':<14} "
+            f"{'AGE':>6}  {'CURRENT TASK':<30} {'ATTACH'}")
+    out.append(c(BOLD, "    " + cols))  # 4-col prefix: dot + sp + mark + sp
+    for r in rows:
+        dot = c(GREEN, "●") if r["status"] == "busy" else c(YELLOW, "○") if r["status"] == "idle" else "·"
+        mark = c(CYAN, "→") if r["here"] else " "
+        attach = f"proj {r['project']}"
+        body = (f"{trunc(r['project'],16):<16} {r['status']:<7} {trunc(r['kind'],11):<11} "
+                f"{trunc(r['branch'],14):<14} {r['age']:>6}  {trunc(r['task'],30):<30} {c(DIM, attach)}")
+        out.append(f"{dot} {mark} {body}")
+    out.append("")
+    out.append(c(DIM, "  → = this session   ● busy  ○ idle   |   remote/scheduled agents: desktop app"))
+    return "\n".join(out)
+
+def main():
+    watch = "--watch" in sys.argv[1:]
+    if not watch:
+        print(render())
+        return
+    try:
+        while True:
+            sys.stdout.write("\033[2J\033[H")  # clear + home
+            sys.stdout.write(render() + "\n")
+            sys.stdout.flush()
+            time.sleep(2)
+    except KeyboardInterrupt:
+        pass
+
+if __name__ == "__main__":
+    main()

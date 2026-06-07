@@ -1,0 +1,45 @@
+// Zellij config — agent-orchestration setup (WSL2)
+// Docs: https://zellij.dev/documentation/
+
+default_shell "bash"
+
+// Don't serialize sessions for resurrection. Closing a session ends it cleanly
+// instead of leaving an "(EXITED - attach to resurrect)" stub that resurrects
+// into a broken single-pane shell. (Detached *live* sessions are unaffected.)
+session_serialization false
+
+// Copy yanked text straight to the Windows clipboard via win32yank (already on PATH).
+copy_command "win32yank.exe -i --crlf"
+copy_clipboard "system"
+
+// Keep pane frames so panes (claude / editor / lazygit) are labelled.
+pane_frames true
+
+// Custom keybinds are MERGED on top of the defaults (defaults stay intact).
+// Jump straight to a tool's tab. Alt-based (not Ctrl-) to avoid clobbering
+// nvim's Ctrl- keys. Switching tabs never restarts the tool in that tab.
+keybinds {
+    shared_except "locked" {
+        bind "Alt 1" { GoToTab 1; }   // claude
+        bind "Alt 2" { GoToTab 2; }   // editor (nvim)
+        bind "Alt 3" { GoToTab 3; }   // git (lazygit)
+        bind "Alt 4" { GoToTab 4; }   // fleet (agent overview)
+
+        // Alt-d -> detach (leave the session running in the background).
+        bind "Alt d" { Detach; }
+
+        // Alt-s -> switch between LIVE sessions (fzf picker, switch-only — it
+        // never creates). Switching away leaves the old session running.
+        // Create new sessions from a shell with `proj`.
+        bind "Alt s" {
+            Run "zswitch" {
+                floating true
+                close_on_exit true
+                width "50%"
+                height "55%"
+                x "25%"
+                y "20%"
+            }
+        }
+    }
+}

@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+# zswitch — switch between LIVE zellij sessions. Switch-only: it never creates.
+# Create sessions from a shell with `proj`. Bound to Alt-s (floating picker).
+set -euo pipefail
+
+if [ -z "${ZELLIJ:-}" ]; then
+  echo "zswitch: only works inside a zellij session." >&2
+  exit 1
+fi
+
+current="${ZELLIJ_SESSION_NAME:-}"
+
+# Live sessions only: lines have "[Created ...]"; drop EXITED stubs; take the
+# session name (first field); drop the current session.
+mapfile -t sessions < <(
+  zellij list-sessions --no-formatting 2>/dev/null \
+    | grep 'Created' | grep -v 'EXITED' \
+    | awk '{print $1}' \
+    | grep -vxF "$current" || true
+)
+
+if [ "${#sessions[@]}" -eq 0 ]; then
+  echo "No other live sessions to switch to."
+  echo "Create one from a shell with:  proj <name>"
+  echo
+  read -rsn1 -p "(press any key to close)"
+  exit 0
+fi
+
+# fzf over the fixed list — typing a non-matching name selects nothing (no create).
+pick="$(printf '%s\n' "${sessions[@]}" \
+        | fzf --prompt 'switch to> ' --height 100% --reverse --no-multi)"
+[ -z "${pick:-}" ] && exit 0
+
+exec zellij action switch-session "$pick"
