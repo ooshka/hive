@@ -1,4 +1,4 @@
-// "agent" workspace layout — launch with: zellij --layout agent  (or via `proj`)
+// "agent" workspace layout — launch with: zellij --layout agent  (or via `hive open`)
 //
 //   Four full-screen tabs, one tool each. Starts focused on claude.
 //   Jump between them instantly — switching hides the others and nothing
@@ -6,7 +6,7 @@
 //
 //     Alt-1 claude   Alt-2 nvim (edit)   Alt-3 lazygit (git)   Alt-4 fleet
 //
-// Each tool launches through `hive-pane <label> <cmd>`, which renames the pane
+// Each tool launches through `hive pane <label> <cmd>`, which renames the pane
 // to "<label> - <project>" (project = the zellij session name) so you can tell
 // which project you're in, e.g. "Claude - dev-globe". The fleet tab
 // self-refreshes every 2s. Panes inherit the cwd zellij is launched from.
@@ -15,29 +15,29 @@ layout {
     tab name="claude" focus=true {
         pane {
             name "claude"
-            command "hive-pane"
-            args "Claude" "claude"
+            command "hive"
+            args "pane" "Claude" "claude"
         }
     }
     tab name="edit" {
         pane {
             name "editor"
-            command "hive-pane"
-            args "Editor" "nvim"
+            command "hive"
+            args "pane" "Editor" "nvim"
         }
     }
     tab name="git" {
         pane {
             name "lazygit"
-            command "hive-pane"
-            args "Git" "lazygit"
+            command "hive"
+            args "pane" "Git" "lazygit"
         }
     }
     tab name="fleet" {
         pane {
             name "fleet"
-            command "hive-pane"
-            args "Fleet" "fleet" "--watch"
+            command "hive"
+            args "pane" "Fleet" "hive" "fleet" "--watch"
         }
     }
 }

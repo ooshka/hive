@@ -1,0 +1,13 @@
+#!/usr/bin/env python3
+"""hive entry point. Resolves the repo (following the install symlink), puts it
+on sys.path, and dispatches to the hivelib package."""
+import os
+import sys
+
+_repo = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+sys.path.insert(0, _repo)
+
+from hivelib.cli import main  # noqa: E402
+
+if __name__ == "__main__":
+    sys.exit(main())

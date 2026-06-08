@@ -74,6 +74,15 @@ for f in "$REPO"/bin/*; do
   link "$f" "$BIN_DIR/$(basename "$f")"
 done
 
+# Prune stale symlinks from earlier versions: ones that point into this repo's
+# bin/ but whose target no longer exists (e.g. scripts consolidated into `hive`).
+for l in "$BIN_DIR"/*; do
+  [ -L "$l" ] || continue
+  case "$(readlink "$l")" in
+    "$REPO"/bin/*) [ -e "$l" ] || { rm -f "$l"; yellow "  - pruned stale $l"; } ;;
+  esac
+done
+
 echo "Linking zellij config → $ZELLIJ_DIR"
 link "$REPO/zellij/config.kdl"        "$ZELLIJ_DIR/config.kdl"
 link "$REPO/zellij/layouts/agent.kdl" "$ZELLIJ_DIR/layouts/agent.kdl"

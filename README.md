@@ -18,21 +18,43 @@ Tab 1 [claude]   Tab 2 [edit]   Tab 3 [git]    Tab 4 [fleet]
 
 | Path | What |
 |------|------|
-| `bin/proj`                  | fuzzy project switcher (fzf over `~/projects`) → opens/attaches a session |
-| `bin/zswitch`               | fzf picker to **open or switch** projects from inside zellij (Alt-s) |
-| `bin/zclose`                | close the current project but stay in zellij (Alt-w) |
-| `bin/hive-pane`             | launcher that titles each tab `"<tool> - <project>"` |
-| `bin/fleet`                 | local agent overview — interactive sessions + worktree agents (`--json` for tooling) |
-| `bin/wtagents`              | manage worktree agents: fzf picker w/ live log preview (Alt-g) |
-| `bin/wtlog`                 | tail a worktree agent's stream-json log through a readable formatter |
-| `bin/wtkill`                | stop a worktree agent (`pkill -f <session-id>`) |
-| `bin/wtedit`                | open nvim on a worktree in a floating pane |
+| `bin/hive`                  | the one entry point (symlinked onto PATH); resolves the repo and dispatches to `hivelib` |
+| `hivelib/`                  | the logic, as a small Python package (one concern per module) — see [Architecture](#architecture) |
 | `zellij/config.kdl`         | base config: `Alt-1..4` tab jumps, `Alt-s` open/switch, `Alt-w` close, `Alt-g` agents, `Alt-d` detach |
-| `zellij/layouts/agent.kdl`  | the four-tab layout (each tab launched via `hive-pane`) |
-| `shell/agent-workflow.sh`   | sourced from `~/.bashrc`: PATH, `EDITOR`, fzf, `lg`/`agent` aliases, `PROJ_ROOTS` |
+| `zellij/layouts/agent.kdl`  | the four-tab layout (each tab launched via `hive pane`) |
+| `shell/agent-workflow.sh`   | sourced from `~/.bashrc`: PATH, `EDITOR`, fzf, `lg`/`agent`/`proj`/`fleet` aliases, `PROJ_ROOTS` |
 | `git/attributes`            | optional global gitattributes (LF normalization for WSL/Windows) |
 | `install.sh` / `uninstall.sh` | symlink things into place / back out cleanly |
 | `REQUIREMENTS.md`           | the tools you need and how to install them |
+
+Everything is one CLI: run `hive --help`. The shell aliases `proj` (→ `hive open`)
+and `fleet` (→ `hive fleet`) are there for muscle memory; keybinds call the rest.
+
+## Architecture
+
+One Python CLI (`hive`), not a pile of shell scripts. `bin/hive` is a tiny entry
+point that follows its install symlink back to the repo, puts it on `sys.path`,
+and dispatches into the `hivelib` package. The guiding split: **logic and data in
+Python; shell out only for spawning tools** (zellij, fzf, git, tail, nvim, claude).
+
+| Module | Responsibility |
+|--------|----------------|
+| `hivelib/cli.py`        | argparse dispatch + the subcommand handlers |
+| `hivelib/util.py`       | ANSI colour, age/string formatting, `run()`, `pgrep` |
+| `hivelib/projects.py`   | project-root scanning, name sanitisation |
+| `hivelib/zellij.py`     | thin zellij CLI wrappers (sessions, switch, rename-pane, new-pane) |
+| `hivelib/sessions.py`   | interactive session discovery (`~/.claude/sessions`) |
+| `hivelib/worktrees.py`  | worktree-agent discovery + status (`pgrep` / last `result` event) |
+| `hivelib/streamfmt.py`  | stream-json → readable lines (the `wt log` formatter) |
+| `hivelib/fleet.py`      | the grouped fleet tree / `--watch` / `--json` |
+| `hivelib/picker.py`     | shared fzf wrapper (open / switch / agents) |
+
+Subcommands: `fleet`, `pane` (layout launcher), `open` (shell-side), `switch` /
+`close` / `agents` (in-zellij, bound to `Alt-s`/`Alt-w`/`Alt-g`), and
+`wt log|kill|edit`. The zellij config calls `hive` directly — e.g. the layout runs
+`command "hive"  args "pane" "Claude" "claude"`, and `Alt-g` runs `Run "hive" "agents"`.
+Because `hive` resolves the repo from its symlink, only `bin/hive` is symlinked;
+the package stays in the repo, so a `git pull` updates the logic with no reinstall.
 
 ## Install
 
@@ -58,9 +80,10 @@ removes the links and the source block (restoring any `.bak`).
 ## Daily use
 
 ```sh
-proj                 # fuzzy-pick a project → opens/attaches its agent session
+proj                 # = hive open: fuzzy-pick a project → open/attach its session
 proj webapp          # pre-filtered (auto-selects on a single match)
-agent                # ad-hoc agent workspace in the current dir
+agent                # ad-hoc agent workspace in the current dir (zellij --layout agent)
+hive --help          # everything else
 ```
 
 Inside a session:
@@ -130,7 +153,7 @@ otherwise the log's last `result` event → **✓ done** / **✗ failed**, or **
 
 ## Worktree agents: control (`Alt-g`)
 
-`fleet` is read-only visibility; **`Alt-g`** opens `wtagents`, an fzf picker over
+`fleet` is read-only visibility; **`Alt-g`** runs `hive agents`, an fzf picker over
 the worktree agents with a **live log preview** and actions:
 
 | Key | Action |
@@ -139,29 +162,31 @@ the worktree agents with a **live log preview** and actions:
 | `ctrl-k` | **kill** the agent (`pkill -f <session-id>`, with confirmation) |
 | `ctrl-e` | open **nvim** on the worktree in a floating pane |
 
-The same actions are standalone scripts, usable from any shell:
+The same actions are `hive` subcommands, usable from any shell:
 
 ```sh
-wtlog  <worktree-path> [--raw] [--no-follow]   # readable stream-json (or full JSON)
-wtkill <worktree-path>                          # SIGTERM the agent, SIGKILL fallback
-wtedit <worktree-path>                          # nvim (floating inside zellij)
+hive wt log  <worktree-path> [--raw] [--no-follow]   # readable stream-json (or full JSON)
+hive wt kill <worktree-path>                          # SIGTERM the agent, SIGKILL fallback
+hive wt edit <worktree-path>                          # nvim (floating inside zellij)
 ```
 
 Worktree agents are **headless and non-interactive** — there's intentionally no
 "attach" (two clients on one session corrupts it; see the `worktree` skill). To
-take over, `wtkill` it and start a fresh session in the worktree. lazygit (`Alt-3`)
+take over, `hive wt kill` it and start a fresh session in the worktree. lazygit (`Alt-3`)
 already shows a repo's worktrees in its branches view, so there's no separate git
 pane here.
 
 ## Configuration
 
-- **Project roots** — `proj` scans `~/projects` by default. Override per-shell
-  with `export PROJ_ROOTS="/path/a:/path/b"`, or uncomment the line in
+- **Project roots** — `hive open`/`switch` scan `~/projects` by default. Override
+  per-shell with `export PROJ_ROOTS="/path/a:/path/b"`, or uncomment the line in
   `shell/agent-workflow.sh`.
+- **Worktree base** — `hive fleet`/`agents` discover agents under `~/projects/worktrees`;
+  override with `export WORKTREE_BASE=...` (matches the `worktree` skill).
 - **Clipboard** — the zellij `copy_command` uses `win32yank.exe` on WSL (provided
   by your neovim setup). On non-WSL machines, change it in `zellij/config.kdl`
   (see `REQUIREMENTS.md`).
-- **Pane titles** — each tab launches via `hive-pane <label> <tool>`, which
+- **Pane titles** — each tab launches via `hive pane <label> <tool>`, which
   renames the zellij pane to `"<label> - $ZELLIJ_SESSION_NAME"` (e.g.
   `Claude - dev-globe`) and sets the host terminal's window title to match.
   Renaming pins the pane frame label, so the tool can't clobber it. Change the
