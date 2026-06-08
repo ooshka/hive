@@ -242,10 +242,17 @@ def cmd_wt_edit(args: argparse.Namespace) -> int:
     return _wt_edit(args.path)
 
 
+def cmd_wt_help(args: argparse.Namespace) -> int:
+    print("usage: hive wt {log|kill|edit} <worktree-path>", file=sys.stderr)
+    return 2
+
+
 # ── dispatch ─────────────────────────────────────────────────────────────────
 def main(argv: list[str] | None = None) -> int:
     argv = sys.argv[1:] if argv is None else argv
-    p = argparse.ArgumentParser(prog="hive", description="zellij/Claude agent workspace")
+    p = argparse.ArgumentParser(
+        prog="hive", description="zellij/Claude agent workspace. "
+        "Run `hive` with no subcommand to open the project switcher.")
     sub = p.add_subparsers(dest="cmd")
 
     f = sub.add_parser("fleet", help="agent overview (sessions + worktree agents)")
@@ -267,6 +274,7 @@ def main(argv: list[str] | None = None) -> int:
     sub.add_parser("agents", help="manage worktree agents (inside zellij)").set_defaults(func=cmd_agents)
 
     wt = sub.add_parser("wt", help="worktree agent helpers (log/kill/edit)")
+    wt.set_defaults(func=cmd_wt_help)  # `hive wt` with no sub → usage
     wtsub = wt.add_subparsers(dest="wtcmd")
     wl = wtsub.add_parser("log", help="tail an agent's stream-json log")
     wl.add_argument("path")
@@ -283,6 +291,6 @@ def main(argv: list[str] | None = None) -> int:
     args = p.parse_args(argv)
     func = getattr(args, "func", None)
     if func is None:
-        p.print_help()
-        return 1
+        # bare `hive` → open the project switcher (same as `hive open`)
+        return cmd_open(argparse.Namespace(query=None))
     return func(args) or 0

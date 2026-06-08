@@ -22,13 +22,14 @@ Tab 1 [claude]   Tab 2 [edit]   Tab 3 [git]    Tab 4 [fleet]
 | `hivelib/`                  | the logic, as a small Python package (one concern per module) — see [Architecture](#architecture) |
 | `zellij/config.kdl`         | base config: `Alt-1..4` tab jumps, `Alt-s` open/switch, `Alt-w` close, `Alt-g` agents, `Alt-d` detach |
 | `zellij/layouts/agent.kdl`  | the four-tab layout (each tab launched via `hive pane`) |
-| `shell/agent-workflow.sh`   | sourced from `~/.bashrc`: PATH, `EDITOR`, fzf, `lg`/`agent`/`proj`/`fleet` aliases, `PROJ_ROOTS` |
+| `shell/agent-workflow.sh`   | sourced from `~/.bashrc`: PATH, `EDITOR`, fzf, `lg`/`agent`/`fleet` aliases, `PROJ_ROOTS` |
 | `git/attributes`            | optional global gitattributes (LF normalization for WSL/Windows) |
 | `install.sh` / `uninstall.sh` | symlink things into place / back out cleanly |
 | `REQUIREMENTS.md`           | the tools you need and how to install them |
 
-Everything is one CLI: run `hive --help`. The shell aliases `proj` (→ `hive open`)
-and `fleet` (→ `hive fleet`) are there for muscle memory; keybinds call the rest.
+Everything is one CLI: run `hive --help`. Bare **`hive`** opens the project
+switcher; the `fleet` alias (→ `hive fleet`) is there for muscle memory; the rest
+are zellij keybinds.
 
 ## Architecture
 
@@ -80,8 +81,8 @@ removes the links and the source block (restoring any `.bak`).
 ## Daily use
 
 ```sh
-proj                 # = hive open: fuzzy-pick a project → open/attach its session
-proj webapp          # pre-filtered (auto-selects on a single match)
+hive                 # fuzzy-pick a project → open/attach its session
+hive open webapp     # pre-filtered (auto-selects on a single match)
 agent                # ad-hoc agent workspace in the current dir (zellij --layout agent)
 hive --help          # everything else
 ```
@@ -110,7 +111,7 @@ Every project is a named zellij session. The key distinction:
 
 | Action | How | Result |
 |--------|-----|--------|
-| **Open a project** (new or existing) | `Alt-s` inside zellij, or `proj` from a shell | Switches to it; starts a fresh `agent` session if it wasn't running |
+| **Open a project** (new or existing) | `Alt-s` inside zellij, or `hive` from a shell | Switches to it; starts a fresh `agent` session if it wasn't running |
 | **Switch to another open project** | `Alt-s` | Jumps there; the one you leave keeps running |
 | **Leave it running (no switch)** | `Alt-d` (detach) | Session + processes keep running in the background |
 | **Close the current project** | `Alt-w` | Switches to another live session, then ends this one — stays in zellij |
@@ -118,13 +119,13 @@ Every project is a named zellij session. The key distinction:
 
 So "close a session without killing it" → **switch away** (`Alt-s`) or **detach**
 (`Alt-d`). To **end** it but stay in hive, use `Alt-w`. Come back to a detached
-session via `Alt-s`, `proj <name>`, or `zellij attach <name>`.
+session via `Alt-s`, `hive open <name>`, or `zellij attach <name>`.
 
-Both `proj` (shell) and `Alt-s` (in-zellij) only *reattach* to a **live**
-session; a closed/absent name is rebuilt **fresh** from `agent.kdl`.
+Both `hive`/`hive open` (shell) and `Alt-s` (in-zellij) only *reattach* to a
+**live** session; a closed/absent name is rebuilt **fresh** from `agent.kdl`.
 
 > Changed `agent.kdl`? A *live* session keeps the old layout until you end it
-> (`Ctrl-q` / `zellij kill-session <name>`); then `proj <name>` rebuilds it fresh.
+> (`Ctrl-q` / `zellij kill-session <name>`); then `hive open <name>` rebuilds it fresh.
 
 ## The fleet overview (`fleet`)
 

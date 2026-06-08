@@ -113,4 +113,4 @@ fi
 echo
 check_deps
 echo
-green "Done. Open a new shell (or 'source ~/.bashrc'), then run: proj"
+green "Done. Open a new shell (or 'source ~/.bashrc'), then run: hive"
