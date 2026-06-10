@@ -18,6 +18,7 @@ Target platform: **WSL2 / Ubuntu** (x86_64). Adjust for other distros as needed.
 | neovim      | editor tab                    | ⚠️ old in apt | want ≥ 0.10; use PPA or release tarball |
 | zellij      | terminal multiplexer          | ✗ | release binary or cargo |
 | lazygit     | git TUI tab                   | ✗ | release binary or PPA |
+| delta       | syntax-highlighting diff pager for lazygit | ✗ | release binary; lazygit's config routes diffs through it |
 | claude      | the agent itself              | ✗ | install per Claude Code docs |
 
 > **Clipboard (WSL):** the zellij config's `copy_command` calls `win32yank.exe`
@@ -52,6 +53,16 @@ curl -fL https://github.com/zellij-org/zellij/releases/latest/download/zellij-x8
 LG_VER=$(curl -fsSL https://api.github.com/repos/jesseduffield/lazygit/releases/latest | grep -Po '"tag_name": "v\K[^"]*')
 curl -fL "https://github.com/jesseduffield/lazygit/releases/download/v${LG_VER}/lazygit_${LG_VER}_Linux_x86_64.tar.gz" \
   | tar -xz -C ~/.local/bin lazygit
+```
+
+### delta
+The lazygit config (`lazygit/config.yml`, symlinked by `install.sh`) routes
+diffs through `delta`, so it needs to be on `PATH` or lazygit's diff panel will
+error. delta tags carry no `v` prefix.
+```bash
+DELTA_VER=$(curl -fsSL https://api.github.com/repos/dandavison/delta/releases/latest | grep -Po '"tag_name": "\K[^"]*')
+curl -fL "https://github.com/dandavison/delta/releases/download/${DELTA_VER}/delta-${DELTA_VER}-x86_64-unknown-linux-gnu.tar.gz" \
+  | tar -xz --strip-components=1 -C ~/.local/bin "delta-${DELTA_VER}-x86_64-unknown-linux-gnu/delta"
 ```
 
 ### neovim (release tarball — newer than apt)
@@ -90,4 +101,5 @@ Captured from the original work setup (newer is generally fine):
 | neovim  | 0.12.2  |
 | zellij  | 0.44.3  |
 | lazygit | 0.62.1  |
+| delta   | 0.18.2  |
 | fzf     | 0.73.1  |

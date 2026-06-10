@@ -14,6 +14,7 @@ set -euo pipefail
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BIN_DIR="$HOME/.local/bin"
 ZELLIJ_DIR="$HOME/.config/zellij"
+LAZYGIT_DIR="$HOME/.config/lazygit"
 GITCFG_DIR="$HOME/.config/git"
 BASHRC="$HOME/.bashrc"
 MARKER="# >>> hive >>>"
@@ -51,7 +52,7 @@ link() {
 check_deps() {
   echo "Dependency check:"
   local missing=0
-  for t in bash python3 git zellij fzf lazygit nvim claude; do
+  for t in bash python3 git zellij fzf lazygit delta nvim claude; do
     if command -v "$t" >/dev/null 2>&1; then
       dim "  ✓ $t ($(command -v "$t"))"
     else
@@ -86,6 +87,9 @@ done
 echo "Linking zellij config → $ZELLIJ_DIR"
 link "$REPO/zellij/config.kdl"        "$ZELLIJ_DIR/config.kdl"
 link "$REPO/zellij/layouts/agent.kdl" "$ZELLIJ_DIR/layouts/agent.kdl"
+
+echo "Linking lazygit config → $LAZYGIT_DIR"
+link "$REPO/lazygit/config.yml" "$LAZYGIT_DIR/config.yml"
 
 echo "Wiring up $BASHRC"
 if grep -qF "$MARKER" "$BASHRC" 2>/dev/null; then
