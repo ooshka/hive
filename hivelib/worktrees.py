@@ -1,9 +1,11 @@
 """Discover headless worktree agents (from the `worktree` skill).
 
 Agents live at $WORKTREE_BASE/<repo>/<name>/ (default ~/projects/worktrees), each
-with .claude/agent-session (session id + log path) and .claude/agent.log
-(newline-delimited stream-json). Liveness is `pgrep -f <session-id>`, matching how
-the skill stops them.
+with .claude/agent-session (the breadcrumb: current run's session id + log path).
+The skill writes one stream-json log per run under .claude/agents/ and rewrites the
+breadcrumb to point at the latest, so we read the breadcrumb's log (falling back to
+the newest per-run log, then a legacy .claude/agent.log). Liveness is
+`pgrep -f <session-id>`, matching how the skill stops them.
 """
 from __future__ import annotations
 
@@ -56,6 +58,23 @@ def session_id_for(path: str) -> str | None:
     return parse_session_file(os.path.join(path, ".claude", "agent-session"))[0]
 
 
+def resolve_log(wt: str, breadcrumb_log: str | None) -> str | None:
+    """Pick the log to read for a worktree, newest-known first.
+
+    The launcher writes one log per run under .claude/agents/ and points the
+    breadcrumb at the current run, so the breadcrumb path is authoritative when it
+    exists. Fall back to the newest per-run log, then the legacy single agent.log,
+    so older worktrees (and a stale breadcrumb) still resolve to *something* real.
+    """
+    if breadcrumb_log and os.path.exists(breadcrumb_log):
+        return breadcrumb_log
+    runs = sorted(glob.glob(os.path.join(wt, ".claude", "agents", "*.log")))
+    if runs:
+        return runs[-1]
+    legacy = os.path.join(wt, ".claude", "agent.log")
+    return legacy if os.path.exists(legacy) else None
+
+
 def tail_events(log: str, maxbytes: int = 65536) -> list[dict[str, Any]]:
     """Parse the last chunk of a stream-json log into events."""
     try:
@@ -102,8 +121,7 @@ def collect() -> list[Agent]:
         name = os.path.basename(wt)
         repo = os.path.basename(os.path.dirname(wt))
         sid, log = parse_session_file(sess_file)
-        if not log:
-            log = os.path.join(wt, ".claude", "agent.log")
+        log = resolve_log(wt, log) or os.path.join(wt, ".claude", "agent.log")
         running = proc_alive(sid)
         events = tail_events(log) if os.path.exists(log) else []
         if running:

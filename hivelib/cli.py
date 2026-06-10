@@ -178,15 +178,18 @@ def cmd_agents(args: argparse.Namespace) -> int:
 
 # ── wt log / kill / edit ────────────────────────────────────────────────────
 def _resolve_log(target: str) -> str | None:
-    if os.path.isdir(target):
-        log = os.path.join(target, ".claude", "agent.log")
-    elif os.path.isfile(target):
-        log = target
-    else:
+    if os.path.isfile(target):
+        return target
+    if not os.path.isdir(target):
         print(f"hive wt log: not found: {target}", file=sys.stderr)
         return None
-    if not os.path.isfile(log):
-        print(f"hive wt log: no log at {log} (agent may not have started)", file=sys.stderr)
+    # A worktree dir: honour the breadcrumb's current run, else newest per-run log.
+    breadcrumb_log = worktrees.parse_session_file(
+        os.path.join(target, ".claude", "agent-session"))[1]
+    log = worktrees.resolve_log(target, breadcrumb_log)
+    if not log or not os.path.isfile(log):
+        print(f"hive wt log: no log under {target}/.claude (agent may not have started)",
+              file=sys.stderr)
         return None
     return log
 
