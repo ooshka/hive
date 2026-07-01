@@ -1,4 +1,4 @@
-# ===== AGENT WORKFLOW (zellij/claude) =====
+# ===== AGENT WORKFLOW (zellij assistant workspace) =====
 # Sourced from ~/.bashrc by install.sh. Edit this file in the repo, then
 # `git pull` on other machines to sync — no need to re-touch ~/.bashrc.
 
@@ -25,4 +25,7 @@ alias fleet='hive fleet'              # agent overview
 # Project roots for `hive`/`switch` (colon-separated); default is ~/projects.
 # Override per-machine by uncommenting / editing:
 # export PROJ_ROOTS="$HOME/projects:/mnt/c/Users/$USER/IdeaProjects"
+#
+# Assistant tab initially expanded pane: claude or codex. Default: claude.
+# export HIVE_AGENT_DEFAULT=claude
 # ===== end agent workflow =====

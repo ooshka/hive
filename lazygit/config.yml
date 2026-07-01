@@ -6,11 +6,11 @@
 # REQUIREMENTS.md); all of its options live in the pager string below, so this
 # stays self-contained and never touches your global ~/.gitconfig.
 git:
-  paging:
-    # colorArg always: hand delta pre-coloured input so it controls the styling.
-    colorArg: always
-    # --paginate=never: lazygit owns scrolling, so delta must not page itself.
-    # --line-numbers:   before/after line numbers in the gutter.
-    # Add --side-by-side for a split view — handy, but can feel cramped in
-    # lazygit's narrow diff panel, so it's left off by default. Try it and see.
-    pager: delta --paginate=never --line-numbers
+  pagers:
+    - # colorArg always: hand delta pre-coloured input so it controls the styling.
+      colorArg: always
+      # --paging=never: lazygit owns scrolling, so delta must not page itself.
+      # --line-numbers:   before/after line numbers in the gutter.
+      # Add --side-by-side for a split view — handy, but can feel cramped in
+      # lazygit's narrow diff panel, so it's left off by default. Try it and see.
+      pager: delta --paging=never --line-numbers

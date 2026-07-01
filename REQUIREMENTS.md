@@ -19,7 +19,8 @@ Target platform: **WSL2 / Ubuntu** (x86_64). Adjust for other distros as needed.
 | zellij      | terminal multiplexer          | ✗ | release binary or cargo |
 | lazygit     | git TUI tab                   | ✗ | release binary or PPA |
 | delta       | syntax-highlighting diff pager for lazygit | ✗ | release binary; lazygit's config routes diffs through it |
-| claude      | the agent itself              | ✗ | install per Claude Code docs |
+| claude      | optional assistant CLI        | ✗ | install per Claude Code docs |
+| codex       | optional assistant CLI        | ✗ | install per Codex docs |
 
 > **Clipboard (WSL):** the zellij config's `copy_command` calls `win32yank.exe`
 > to push yanks to the Windows clipboard. That binary comes with your **neovim
@@ -74,9 +75,25 @@ ln -sfn ~/.local/opt/nvim-linux-x86_64/bin/nvim ~/.local/bin/nvim
 > Or, if you prefer apt and a recent enough version is acceptable:
 > `sudo add-apt-repository ppa:neovim-ppa/unstable && sudo apt-get install -y neovim`
 
-### claude
-Install Claude Code per the official docs; the workflow expects `claude` on
-`PATH` (the `claude` tab and `fleet` overview rely on it).
+### assistant CLI: Claude and/or Codex
+Install at least one assistant CLI on `PATH`:
+
+- `claude` for Claude Code
+- `codex` for Codex
+
+The assistant area launches through `hive assistant`. It creates separate Codex
+and Claude tabs, so both can stay alive while the inactive assistant is fully
+hidden. `Alt-a` rotates between them. If one tool is not installed, its tab stays
+open with a clear message and a shell instead of failing with a bare
+`command not found`.
+
+Set the initially selected assistant with `HIVE_AGENT_DEFAULT`. Claude is the
+default when the variable is unset:
+
+```bash
+export HIVE_AGENT_DEFAULT=claude
+export HIVE_AGENT_DEFAULT=codex
+```
 
 ## Clipboard
 

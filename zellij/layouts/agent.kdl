@@ -1,10 +1,11 @@
 // "agent" workspace layout — launch with: zellij --layout agent  (or via `hive open`)
 //
-//   Four full-screen tabs, one tool each. Starts focused on claude.
+//   Codex and Claude run in separate tabs, so both stay alive while the
+//   inactive assistant is fully hidden.
 //   Jump between them instantly — switching hides the others and nothing
 //   relaunches (each tab's process keeps running in the background).
 //
-//     Alt-1 claude   Alt-2 nvim (edit)   Alt-3 lazygit (git)   Alt-4 fleet
+//     Alt-1 default assistant   Alt-a rotate agent   Alt-2 nvim   Alt-3 lazygit   Alt-4 fleet
 //
 // Each tool launches through `hive pane <label> <cmd>`, which renames the pane
 // to "<label> - <project>" (project = the zellij session name) so you can tell
@@ -12,11 +13,26 @@
 // self-refreshes every 2s. Panes inherit the cwd zellij is launched from.
 
 layout {
-    tab name="claude" focus=true {
+    tab name="assistant-start" focus=true {
+        pane {
+            name "assistant-start"
+            command "hive"
+            close_on_exit true
+            args "assistant"
+        }
+    }
+    tab name="claude" {
         pane {
             name "claude"
             command "hive"
-            args "pane" "Claude" "claude"
+            args "pane" "Claude" "hive" "assistant-shell" "claude"
+        }
+    }
+    tab name="codex" {
+        pane {
+            name "codex"
+            command "hive"
+            args "pane" "Codex" "hive" "assistant-shell" "codex"
         }
     }
     tab name="edit" {

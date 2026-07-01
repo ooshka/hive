@@ -1,17 +1,19 @@
 # hive
 
-A keyboard-driven, multi-session workspace for running and monitoring Claude
-Code agents, built on **zellij**. Each project gets a named session with four
-full-screen tabs — **claude / nvim / lazygit / fleet** — and you jump between
-projects and tabs without the mouse.
+A keyboard-driven, multi-session workspace for running and monitoring coding
+agents, built on **zellij**. Each project gets a named session with four
+full-screen tabs — **assistant / nvim / lazygit / fleet** — and you jump between
+projects and tabs without the mouse. The assistant tab keeps Codex and Claude
+alive in separate tabs, with a hotkey to rotate between them while the inactive
+assistant is fully hidden.
 
 Portable across machines: clone, install missing tools, run `./install.sh`.
 The setup is symlink-based, so edits live in this repo and sync via `git pull`.
 
 ```
-Tab 1 [claude]   Tab 2 [edit]   Tab 3 [git]    Tab 4 [fleet]
-  claude           nvim           lazygit        agent overview
-   Alt-1            Alt-2          Alt-3           Alt-4
+Tab 1 [assistant] Tab 2 [edit]   Tab 3 [git]    Tab 4 [fleet]
+  codex/claude      nvim           lazygit        agent overview
+   Alt-1 / Alt-a    Alt-2          Alt-3           Alt-4
 ```
 
 ## What's in here
@@ -36,11 +38,12 @@ are zellij keybinds.
 One Python CLI (`hive`), not a pile of shell scripts. `bin/hive` is a tiny entry
 point that follows its install symlink back to the repo, puts it on `sys.path`,
 and dispatches into the `hivelib` package. The guiding split: **logic and data in
-Python; shell out only for spawning tools** (zellij, fzf, git, tail, nvim, claude).
+Python; shell out only for spawning tools** (zellij, fzf, git, tail, nvim, codex, claude).
 
 | Module | Responsibility |
 |--------|----------------|
 | `hivelib/cli.py`        | argparse dispatch + the subcommand handlers |
+| `hivelib/assistants.py` | Codex/Claude tab focus and missing-tool messages |
 | `hivelib/util.py`       | ANSI colour, age/string formatting, `run()`, `pgrep` |
 | `hivelib/projects.py`   | project-root scanning, name sanitisation |
 | `hivelib/zellij.py`     | thin zellij CLI wrappers (sessions, switch, rename-pane, new-pane) |
@@ -53,7 +56,7 @@ Python; shell out only for spawning tools** (zellij, fzf, git, tail, nvim, claud
 Subcommands: `fleet`, `pane` (layout launcher), `open` (shell-side), `switch` /
 `close` / `agents` (in-zellij, bound to `Alt-s`/`Alt-w`/`Alt-g`), and
 `wt log|kill|edit`. The zellij config calls `hive` directly — e.g. the layout runs
-`command "hive"  args "pane" "Claude" "claude"`, and `Alt-g` runs `Run "hive" "agents"`.
+`command "hive"  args "assistant"`, and `Alt-g` runs `Run "hive" "agents"`.
 Because `hive` resolves the repo from its symlink, only `bin/hive` is symlinked;
 the package stays in the repo, so a `git pull` updates the logic with no reinstall.
 
@@ -91,7 +94,8 @@ Inside a session:
 
 | Key | Action |
 |-----|--------|
-| `Alt-1` | claude tab |
+| `Alt-1` | assistant tab (Codex/Claude) |
+| `Alt-a` | rotate between Codex and Claude in the assistant tab |
 | `Alt-2` | editor (nvim) tab |
 | `Alt-3` | git (lazygit) tab |
 | `Alt-4` | fleet tab (agent overview, self-refreshes every 2s) |
@@ -182,6 +186,11 @@ pane here.
 - **Project roots** — `hive open`/`switch` scan `~/projects` by default. Override
   per-shell with `export PROJ_ROOTS="/path/a:/path/b"`, or uncomment the line in
   `shell/agent-workflow.sh`.
+- **Assistant tab** — set `HIVE_AGENT_DEFAULT=claude` or `codex` to choose
+  which assistant tab is selected first. Claude is the default when the variable
+  is unset. Both assistant tabs are created and stay alive; `Alt-a` rotates
+  between them while keeping the inactive assistant hidden. If one tool is not
+  installed, its tab stays open with an explanatory shell.
 - **Worktree base** — `hive fleet`/`agents` discover agents under `~/projects/worktrees`;
   override with `export WORKTREE_BASE=...` (matches the `worktree` skill).
 - **Clipboard** — the zellij `copy_command` uses `win32yank.exe` on WSL (provided

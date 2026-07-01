@@ -1,6 +1,9 @@
-"""hive — single entry point for the zellij/Claude agent workspace.
+"""hive — single entry point for the zellij assistant workspace.
 
 Subcommands:
+  assistant                  create the first tab's Codex/Claude panes
+  assistant-shell <name>     run one assistant pane
+  assistant-toggle           rotate between Codex/Claude tabs
   fleet [--watch|--json]      agent overview (sessions + worktree agents)
   pane <label> <cmd> [args…]  title the pane "<label> - <project>", then exec cmd
   open [query]                open/attach a project session (run from a shell)
@@ -16,10 +19,23 @@ import os
 import sys
 import time
 
-from . import fleet, projects, worktrees, zellij
+from . import assistants, fleet, projects, worktrees, zellij
 from .picker import fzf
 from .streamfmt import view
 from .util import paint, run, proc_alive, GREEN, RED, DIM
+
+
+# ── assistant tab ──────────────────────────────────────────────────────────
+def cmd_assistant(args: argparse.Namespace) -> int:
+    return assistants.bootstrap()
+
+
+def cmd_assistant_shell(args: argparse.Namespace) -> int:
+    return assistants.shell(args.name)
+
+
+def cmd_assistant_toggle(args: argparse.Namespace) -> int:
+    return assistants.toggle()
 
 
 # ── fleet ─────────────────────────────────────────────────────────────────
@@ -254,9 +270,17 @@ def cmd_wt_help(args: argparse.Namespace) -> int:
 def main(argv: list[str] | None = None) -> int:
     argv = sys.argv[1:] if argv is None else argv
     p = argparse.ArgumentParser(
-        prog="hive", description="zellij/Claude agent workspace. "
+        prog="hive", description="zellij assistant workspace. "
         "Run `hive` with no subcommand to open the project switcher.")
     sub = p.add_subparsers(dest="cmd")
+
+    sub.add_parser("assistant", help="focus configured Codex/Claude assistant tab").set_defaults(
+        func=cmd_assistant)
+    ash = sub.add_parser("assistant-shell", help="run one assistant pane (layout use)")
+    ash.add_argument("name")
+    ash.set_defaults(func=cmd_assistant_shell)
+    sub.add_parser("assistant-toggle", help="rotate between Codex/Claude tabs").set_defaults(
+        func=cmd_assistant_toggle)
 
     f = sub.add_parser("fleet", help="agent overview (sessions + worktree agents)")
     f.add_argument("--watch", action="store_true", help="refresh every 2s")

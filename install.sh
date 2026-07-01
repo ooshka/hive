@@ -52,13 +52,22 @@ link() {
 check_deps() {
   echo "Dependency check:"
   local missing=0
-  for t in bash python3 git zellij fzf lazygit delta nvim claude; do
+  for t in bash python3 git zellij fzf lazygit delta nvim; do
     if command -v "$t" >/dev/null 2>&1; then
       dim "  ✓ $t ($(command -v "$t"))"
     else
       yellow "  ✗ $t — missing"; missing=1
     fi
   done
+  local agents=0
+  for t in claude codex; do
+    if command -v "$t" >/dev/null 2>&1; then
+      dim "  ✓ $t ($(command -v "$t"))"; agents=1
+    else
+      yellow "  ◦ $t — missing (optional assistant)"
+    fi
+  done
+  [ "$agents" -eq 0 ] && yellow "  ! no assistant CLI found — install claude or codex when you want that pane to launch one"
   [ "$missing" -eq 1 ] && yellow "  → install missing tools per REQUIREMENTS.md, then re-run."
   return 0
 }

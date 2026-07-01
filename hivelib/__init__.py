@@ -1,4 +1,4 @@
-"""hivelib — the logic behind the `hive` command (zellij/Claude agent workspace).
+"""hivelib — the logic behind the `hive` command (zellij assistant workspace).
 
 Process orchestration (launching tools, zellij actions) stays thin; this package
 holds the data + logic: session/worktree-agent discovery, status, stream-json
