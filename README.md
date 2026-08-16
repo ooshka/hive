@@ -193,9 +193,9 @@ pane here.
   installed, its tab stays open with an explanatory shell.
 - **Worktree base** — `hive fleet`/`agents` discover agents under `~/projects/worktrees`;
   override with `export WORKTREE_BASE=...` (matches the `worktree` skill).
-- **Clipboard** — the zellij `copy_command` uses `win32yank.exe` on WSL (provided
-  by your neovim setup). On non-WSL machines, change it in `zellij/config.kdl`
-  (see `REQUIREMENTS.md`).
+- **Clipboard** — the zellij `copy_command` copies to the host clipboard using
+  `pbcopy` on macOS, `win32yank.exe` on WSL, `wl-copy` on Wayland, or `xclip` on
+  X11 (see `REQUIREMENTS.md`).
 - **Pane titles** — each tab launches via `hive pane <label> <tool>`, which
   renames the zellij pane to `"<label> - $ZELLIJ_SESSION_NAME"` (e.g.
   `Claude - dev-globe`) and sets the host terminal's window title to match.

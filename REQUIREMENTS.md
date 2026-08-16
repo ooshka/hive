@@ -22,10 +22,10 @@ Target platform: **WSL2 / Ubuntu** (x86_64). Adjust for other distros as needed.
 | claude      | optional assistant CLI        | ✗ | install per Claude Code docs |
 | codex       | optional assistant CLI        | ✗ | install per Codex docs |
 
-> **Clipboard (WSL):** the zellij config's `copy_command` calls `win32yank.exe`
-> to push yanks to the Windows clipboard. That binary comes with your **neovim
-> setup**, not this repo — if your nvim install provides it, it just works. See
-> the clipboard note at the bottom for non-WSL machines.
+> **Clipboard:** the zellij config's `copy_command` pushes yanks to the host
+> clipboard using `pbcopy` on macOS, `win32yank.exe` on WSL, `wl-copy` on
+> Wayland, or `xclip` on X11. Install the one for your platform if it is not
+> already present.
 
 ## apt packages (one command)
 
@@ -97,17 +97,19 @@ export HIVE_AGENT_DEFAULT=codex
 
 ## Clipboard
 
-The zellij config copies yanked text to the system clipboard via:
+The zellij config copies yanked text to the system clipboard via a portable
+shell wrapper:
 
 ```
-copy_command "win32yank.exe -i --crlf"
+copy_command "bash -lc 'if command -v pbcopy >/dev/null 2>&1; then pbcopy; elif command -v win32yank.exe >/dev/null 2>&1; then win32yank.exe -i --crlf; elif command -v wl-copy >/dev/null 2>&1; then wl-copy; elif command -v xclip >/dev/null 2>&1; then xclip -selection clipboard; else cat >/dev/null; fi'"
 ```
 
-- **WSL:** `win32yank.exe` is provided by the neovim setup (not this repo). If
-  it's on `PATH`, copying to the Windows clipboard just works.
-- **Non-WSL:** edit `copy_command` in `zellij/config.kdl` to `wl-copy` (Wayland),
-  `xclip -selection clipboard` (X11), or `pbcopy` (macOS) — or delete the
-  `copy_command`/`copy_clipboard` lines to fall back to zellij's built-in OSC52.
+- **macOS:** `pbcopy` is built in.
+- **WSL:** `win32yank.exe` is usually provided by the neovim setup. If it is on
+  `PATH`, copying to the Windows clipboard works.
+- **Linux:** install `wl-copy` for Wayland or `xclip` for X11.
+- **Fallback:** delete the `copy_command`/`copy_clipboard` lines to use zellij's
+  built-in OSC52 behavior instead.
 
 ## Versions known to work
 

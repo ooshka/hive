@@ -1,4 +1,4 @@
-// Zellij config — agent-orchestration setup (WSL2)
+// Zellij config — agent-orchestration setup
 // Docs: https://zellij.dev/documentation/
 
 default_shell "bash"
@@ -8,8 +8,9 @@ default_shell "bash"
 // into a broken single-pane shell. (Detached *live* sessions are unaffected.)
 session_serialization false
 
-// Copy yanked text straight to the Windows clipboard via win32yank (already on PATH).
-copy_command "win32yank.exe -i --crlf"
+// Copy yanked text straight to the host clipboard. The shell wrapper keeps one
+// config portable across macOS, WSL, Wayland, and X11.
+copy_command "bash -lc 'if command -v pbcopy >/dev/null 2>&1; then pbcopy; elif command -v win32yank.exe >/dev/null 2>&1; then win32yank.exe -i --crlf; elif command -v wl-copy >/dev/null 2>&1; then wl-copy; elif command -v xclip >/dev/null 2>&1; then xclip -selection clipboard; else cat >/dev/null; fi'"
 copy_clipboard "system"
 
 // Keep pane frames so panes (assistant / editor / lazygit) are labelled.
