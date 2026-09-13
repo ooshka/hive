@@ -21,7 +21,7 @@ Tab 1 [assistant] Tab 2 [edit]   Tab 3 [git]
 |------|------|
 | `bin/hive`                  | the one entry point (symlinked onto PATH); resolves the repo and dispatches to `hivelib` |
 | `hivelib/`                  | the logic, as a small Python package (one concern per module) — see [Architecture](#architecture) |
-| `zellij/config.kdl`         | base config: `Alt-1..3` tab jumps, `Alt-s` open/switch, `Alt-w` close, `Alt-g` agents, `Alt-d` detach |
+| `zellij/config.kdl`         | base config: `Alt-1..3` tab jumps, `Alt-s` open/switch, `Alt-w` close, `Alt-d` detach |
 | `zellij/layouts/agent.kdl`  | the three-tab layout (each tab launched via `hive pane`) |
 | `shell/agent-workflow.sh`   | sourced from `~/.bashrc`: PATH, `EDITOR`, fzf, `lg`/`agent` aliases, `PROJ_ROOTS` |
 | `git/attributes`            | optional global gitattributes (LF normalization for WSL/Windows) |
@@ -29,7 +29,7 @@ Tab 1 [assistant] Tab 2 [edit]   Tab 3 [git]
 | `REQUIREMENTS.md`           | the tools you need and how to install them |
 
 Everything is one CLI: run `hive --help`. Bare **`hive`** opens the project
-switcher; the rest are zellij keybinds and `hive wt …` helpers.
+switcher; the rest are zellij keybinds.
 
 ## Architecture
 
@@ -45,15 +45,12 @@ Python; shell out only for spawning tools** (zellij, fzf, git, tail, nvim, codex
 | `hivelib/util.py`       | ANSI colour, age/string formatting, `run()`, `pgrep` |
 | `hivelib/projects.py`   | project-root scanning, name sanitisation |
 | `hivelib/zellij.py`     | thin zellij CLI wrappers (sessions, switch, rename-pane, new-pane) |
-| `hivelib/worktrees.py`  | worktree-agent discovery + status (`pgrep` / last `result` event) |
-| `hivelib/streamfmt.py`  | stream-json → readable lines (the `wt log` formatter) |
-| `hivelib/picker.py`     | shared fzf wrapper (open / switch / agents) |
+| `hivelib/picker.py`     | shared fzf wrapper (open / switch) |
 
 Subcommands: `pane` (layout launcher), `tab` (named tab focus), `open`
-(shell-side), `switch` / `close` / `agents` (in-zellij, bound to
-`Alt-s`/`Alt-w`/`Alt-g`), and `wt log|kill|edit`. The zellij config calls `hive`
-directly — e.g. the layout runs `command "hive"  args "assistant"`, and `Alt-g`
-runs `Run "hive" "agents"`.
+(shell-side), and `switch` / `close` (in-zellij, bound to `Alt-s`/`Alt-w`). The
+zellij config calls `hive` directly — e.g. the layout runs
+`command "hive"  args "assistant"`.
 Because `hive` resolves the repo from its symlink, only `bin/hive` is symlinked;
 the package stays in the repo, so a `git pull` updates the logic with no reinstall.
 
@@ -97,13 +94,21 @@ Inside a session:
 | `Alt-3` | git (lazygit) tab |
 | `Alt-s` | **open or switch** projects (fzf picker — opens unopened projects too) |
 | `Alt-w` | **close** the current project, switching to another live one (stays in zellij) |
-| `Alt-g` | **manage worktree agents** (fzf picker: live log preview, kill, edit) |
 | `Alt-d` | detach (session keeps running in the background) |
 | `Ctrl-q` | quit zellij entirely (drops to a shell) |
 
 Switching tabs is instant and never relaunches the tool — each tab's process
 keeps running in the background. Each tab's terminal title shows `<tool> - <project>`
 (e.g. `Claude - dev-globe`) so you can tell which project you're in.
+
+## Testing
+
+```sh
+python3 -m unittest discover
+```
+
+The tests use Python's standard-library `unittest` runner and mock external
+processes, so they do not need zellij, fzf, Claude, or Codex to be running.
 
 ## Managing sessions: leave alive vs. end
 
@@ -127,31 +132,6 @@ Both `hive`/`hive open` (shell) and `Alt-s` (in-zellij) only *reattach* to a
 > Changed `agent.kdl`? A *live* session keeps the old layout until you end it
 > (`Ctrl-q` / `zellij kill-session <name>`); then `hive open <name>` rebuilds it fresh.
 
-## Worktree agents: control (`Alt-g`)
-
-**`Alt-g`** runs `hive agents`, an fzf picker over the worktree agents with a
-**live log preview** and actions:
-
-| Key | Action |
-|-----|--------|
-| `enter`  | open the agent's log — live tail, readable stream-json (`Ctrl-c` closes the pane; scroll with zellij's scroll mode / mouse wheel) |
-| `ctrl-k` | **kill** the agent (`pkill -f <session-id>`, with confirmation) |
-| `ctrl-e` | open **nvim** on the worktree in a floating pane |
-
-The same actions are `hive` subcommands, usable from any shell:
-
-```sh
-hive wt log  <worktree-path> [--raw] [--no-follow]   # readable stream-json (or full JSON)
-hive wt kill <worktree-path>                          # SIGTERM the agent, SIGKILL fallback
-hive wt edit <worktree-path>                          # nvim (floating inside zellij)
-```
-
-Worktree agents are **headless and non-interactive** — there's intentionally no
-"attach" (two clients on one session corrupts it; see the `worktree` skill). To
-take over, `hive wt kill` it and start a fresh session in the worktree. lazygit (`Alt-3`)
-already shows a repo's worktrees in its branches view, so there's no separate git
-pane here.
-
 ## Configuration
 
 - **Project roots** — `hive open`/`switch` scan `~/projects` by default. Override
@@ -162,8 +142,6 @@ pane here.
   unset. `Alt-a` creates another tab of that same assistant; `Alt-1` focuses the
   assistant area and cycles through assistant tabs when already there. If the
   configured tool is not installed, the tab stays open with an explanatory shell.
-- **Worktree base** — `hive agents` discovers agents under `~/projects/worktrees`;
-  override with `export WORKTREE_BASE=...` (matches the `worktree` skill).
 - **Clipboard** — the zellij `copy_command` copies to the host clipboard using
   `pbcopy` on macOS, `win32yank.exe` on WSL, `wl-copy` on Wayland, or `xclip` on
   X11 (see `REQUIREMENTS.md`).

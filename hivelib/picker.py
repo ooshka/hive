@@ -1,4 +1,4 @@
-"""fzf wrapper shared by the open / switch / agents pickers."""
+"""fzf wrapper shared by the open / switch pickers."""
 from __future__ import annotations
 
 import subprocess
