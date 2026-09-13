@@ -1,5 +1,5 @@
 // The CLI supplies the assistant command for this pane.
-// One swap layout makes Alt-v deterministic at any terminal aspect ratio.
+// One swap layout makes Alt-s deterministic at any terminal aspect ratio.
 layout {
     pane
     swap_tiled_layout name="hive-side-by-side" {

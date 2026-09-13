@@ -7,7 +7,7 @@ Subcommands:
   pane <label> <cmd> [args…]  title the pane "<label> - <project>", then exec cmd
   tab <name>                  focus a named tab
   open [query]                open/attach a project session (run from a shell)
-  switch                      open or switch projects (inside zellij; Alt-s)
+  switch                      open or switch projects (inside zellij)
   close                       close current project, stay in zellij (Alt-w)
 """
 from __future__ import annotations
@@ -65,7 +65,7 @@ def cmd_tab(args: argparse.Namespace) -> int:
 # ── open: shell-side project launcher (the old `proj`) ──────────────────────
 def cmd_open(args: argparse.Namespace) -> int:
     if zellij.inside():
-        print("Inside zellij — use Alt-s to open/switch projects.", file=sys.stderr)
+        print("Inside zellij — run hive switch to open/switch projects.", file=sys.stderr)
         return 1
     if args.query and os.path.isdir(args.query):
         selected = os.path.realpath(args.query)
@@ -130,7 +130,7 @@ def cmd_close(args: argparse.Namespace) -> int:
     others = [s for s in zellij.live_sessions() if s != current]
     if not others:
         print(f"Closing '{current}' would leave no live session to land on.")
-        print("Open another first with Alt-s, or quit zellij with Ctrl-q.")
+        print("Open another first with hive switch, or quit zellij with Ctrl-q.")
         input("(press Enter to cancel) ")
         return 0
     if len(others) == 1:

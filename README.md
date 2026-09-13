@@ -4,7 +4,7 @@ A keyboard-driven, multi-session workspace for running and monitoring coding
 agents, built on **zellij**. Each project gets a named session with assistant,
 nvim, and lazygit tabs, and you jump between projects and tabs without the mouse.
 Hive starts one assistant tab using `HIVE_AGENT_DEFAULT`; `Alt-a` creates another
-tab of that same assistant, and `Alt-1` cycles through assistant tabs. `Alt-v`
+tab of that same assistant, and `Alt-1` cycles through assistant tabs. `Alt-s`
 toggles moving the live editor pane beside the active assistant.
 
 Portable across machines: clone, install missing tools, run `./install.sh`.
@@ -14,7 +14,7 @@ The setup is symlink-based, so edits live in this repo and sync via `git pull`.
 Tab 1 [assistant] Tab 2 [edit]   Tab 3 [git]
   claude/codex      nvim           lazygit
    Alt-1 / Alt-a    Alt-2          Alt-3
-   Alt-v pairs tab 1 + live nvim
+   Alt-s pairs tab 1 + live nvim
 ```
 
 ## What's in here
@@ -23,7 +23,7 @@ Tab 1 [assistant] Tab 2 [edit]   Tab 3 [git]
 |------|------|
 | `bin/hive`                  | the one entry point (symlinked onto PATH); resolves the repo and dispatches to `hivelib` |
 | `hivelib/`                  | the logic, as a small Python package (one concern per module) — see [Architecture](#architecture) |
-| `zellij/config.kdl`         | base config: `Alt-1..3` tab jumps, `Alt-s` open/switch, `Alt-w` close, `Alt-d` detach |
+| `zellij/config.kdl`         | base config: `Alt-1..3` tab jumps, `Alt-s` editor split, `Alt-w` close, `Alt-d` detach |
 | `zellij/layouts/agent.kdl`  | the three-tab layout (each tab launched via `hive pane`) |
 | `plugins/hive-orchestrator` | Zellij plugin for moving/focusing the live editor pane without helper panes |
 | `shell/agent-workflow.sh`   | sourced from `~/.bashrc`: PATH, `EDITOR`, fzf, `lg`/`agent` aliases, `PROJ_ROOTS` |
@@ -54,7 +54,7 @@ and focus existing panes without launching temporary command panes.
 | `plugins/hive-orchestrator` | Rust/WASM Zellij plugin for assistant/editor split focus |
 
 Subcommands: `pane` (layout launcher), `tab` (named tab focus), `open`
-(shell-side), and `switch` / `close` (in-zellij, bound to `Alt-s`/`Alt-w`). The
+(shell-side), and `switch` / `close` (in-zellij; `close` is bound to `Alt-w`). The
 zellij config calls `hive` directly — e.g. the layout runs
 `command "hive"  args "assistant"`.
 Because `hive` resolves the repo from its symlink, only `bin/hive` is symlinked;
@@ -99,11 +99,10 @@ Inside a session:
 |-----|--------|
 | `Alt-1` | focus the assistant area; cycle assistants when already on an assistant tab |
 | `Alt-a` | create another `HIVE_AGENT_DEFAULT` assistant tab, carrying the editor along if split |
-| `Alt-v` | move the live editor to the assistant's right; press again to return it to `edit` and focus the full-width agent |
+| `Alt-s` | move the live editor to the assistant's right; press again to return it to `edit` and focus the full-width agent |
 | `Alt-2` | focus the live editor pane; uses the editor tab when not split |
 | `Alt-3` | focus git (lazygit) tab |
 | `Alt-f` | toggle focused pane fullscreen |
-| `Alt-s` | **open or switch** projects (fzf picker — opens unopened projects too) |
 | `Alt-w` | **close** the current project, switching to another live one (stays in zellij) |
 | `Alt-d` | detach (session keeps running in the background) |
 | `Ctrl-q` | quit zellij entirely (drops to a shell) |
@@ -127,17 +126,17 @@ Every project is a named zellij session. The key distinction:
 
 | Action | How | Result |
 |--------|-----|--------|
-| **Open a project** (new or existing) | `Alt-s` inside zellij, or `hive` from a shell | Switches to it; starts a fresh `agent` session if it wasn't running |
-| **Switch to another open project** | `Alt-s` | Jumps there; the one you leave keeps running |
+| **Open a project** (new or existing) | `hive switch` inside zellij, or `hive` from a shell | Switches to it; starts a fresh `agent` session if it wasn't running |
+| **Switch to another open project** | `hive switch` | Jumps there; the one you leave keeps running |
 | **Leave it running (no switch)** | `Alt-d` (detach) | Session + processes keep running in the background |
 | **Close the current project** | `Alt-w` | Switches to another live session, then ends this one — stays in zellij |
 | **End + leave zellij** | `Ctrl-q`, close the terminal, or `zellij kill-session <name>` | Stops cleanly — no lingering `(EXITED)` stub (`session_serialization false`) |
 
-So "close a session without killing it" → **switch away** (`Alt-s`) or **detach**
+So "close a session without killing it" → **switch away** (`hive switch`) or **detach**
 (`Alt-d`). To **end** it but stay in hive, use `Alt-w`. Come back to a detached
-session via `Alt-s`, `hive open <name>`, or `zellij attach <name>`.
+session via `hive switch`, `hive open <name>`, or `zellij attach <name>`.
 
-Both `hive`/`hive open` (shell) and `Alt-s` (in-zellij) only *reattach* to a
+Both `hive`/`hive open` (shell) and `hive switch` (in-zellij) only *reattach* to a
 **live** session; a closed/absent name is rebuilt **fresh** from `agent.kdl`.
 
 > Changed `agent.kdl`? A *live* session keeps the old layout until you end it

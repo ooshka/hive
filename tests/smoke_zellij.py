@@ -99,31 +99,31 @@ try:
     drain(1)
     original_ids = {p['id'] for p in panes()}
     assert len(original_ids) == 4
-    key('v')
+    key('s')
     check_split('Codex - smoke')
-    key('v')
+    key('s')
     check_unsplit('Codex - smoke')
     key('1')
     assert focused_tab() == 'claude:1'
-    key('v')
+    key('s')
     check_split('Claude - smoke')
     key('1')
     check_split('Codex - smoke')
-    key('v')
+    key('s')
     check_unsplit('Codex - smoke')
     key('2')
     assert focused_tab() == 'edit'
-    key('v')
+    key('s')
     check_split('Codex - smoke')
     key('f')
     assert any(p['is_fullscreen'] for p in panes())
-    key('v')
+    key('s')
     check_unsplit('Codex - smoke')
     key('3')
     assert focused_tab() == 'git'
-    key('v')
+    key('s')
     check_split('Codex - smoke')
-    key('v')
+    key('s')
     check_unsplit('Codex - smoke')
     # A new agent while unsplit should remain full width.
     action('new-tab', '--layout', str(root / 'zellij/layouts/hive-assistant.kdl'), '--name', 'codex:2', '--', 'bash')
@@ -134,7 +134,7 @@ try:
     assert original_ids < new_ids and len(new_ids - original_ids) == 1
     original_ids = new_ids
     check_unsplit('Codex 2 - smoke')
-    key('v')
+    key('s')
     check_split('Codex 2 - smoke')
     # Reproduce Alt-a's new-tab then asynchronous Hive pane rename.
     action('new-tab', '--layout', str(root / 'zellij/layouts/hive-assistant.kdl'), '--name', 'codex:3', '--', 'bash')
@@ -147,7 +147,7 @@ try:
     check_split('Codex 3 - smoke')
     assert focused_tab() == 'codex:3'
     assert next(p for p in panes() if p['title'] == 'Codex 3 - smoke')['is_focused']
-    key('v')
+    key('s')
     check_unsplit('Codex 3 - smoke')
     print('PASS all native keybindings; pane IDs unchanged', flush=True)
 finally:

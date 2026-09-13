@@ -4,7 +4,7 @@
 //   Alt-1 focuses the assistant area, cycling through assistant tabs when
 //   already there.
 //
-//     Alt-1 assistant/cycle   Alt-a new assistant   Alt-v split editor
+//     Alt-1 assistant/cycle   Alt-a new assistant   Alt-s split editor
 //     Alt-2 nvim/editor       Alt-3 lazygit         Alt-f fullscreen
 //
 // Each tool launches through `hive pane <label> <cmd>`, which renames the pane

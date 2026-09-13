@@ -19,7 +19,7 @@ Target platform: **WSL2 / Ubuntu** (x86_64). Adjust for other distros as needed.
 | zellij      | terminal multiplexer          | ✗ | release binary or cargo |
 | lazygit     | git TUI tab                   | ✗ | release binary or PPA |
 | delta       | syntax-highlighting diff pager for lazygit | ✗ | release binary; lazygit's config routes diffs through it |
-| rustup/cargo | build Hive's Zellij plugin   | ✗ | needed for `Alt-v` live pane orchestration |
+| rustup/cargo | build Hive's Zellij plugin   | ✗ | needed for `Alt-s` live pane orchestration |
 | claude      | optional assistant CLI        | ✗ | install per Claude Code docs |
 | codex       | optional assistant CLI        | ✗ | install per Codex docs |
 

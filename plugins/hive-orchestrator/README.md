@@ -2,9 +2,9 @@
 
 Zellij plugin for Hive's live assistant/editor choreography.
 
-It receives `MessagePlugin` keybinds from `zellij/config.kdl`. Alt-v moves the
+It receives `MessagePlugin` keybinds from `zellij/config.kdl`. Alt-s moves the
 existing `Editor - ...` pane to the active assistant's right and focuses it.
-Pressing Alt-v again returns that pane to `edit` and focuses the full-width
+Pressing Alt-s again returns that pane to `edit` and focuses the full-width
 assistant. Alt-1 cycles assistants, carrying the editor along when split.
 Spawning an assistant with Alt-a also carries the split editor to the new tab
 and leaves keyboard focus on the new agent.
