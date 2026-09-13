@@ -4,7 +4,6 @@ Subcommands:
   assistant                  focus/cycle HIVE_AGENT_DEFAULT assistant tabs
   assistant-shell <name>     run one assistant pane
   assistant-spawn            create another HIVE_AGENT_DEFAULT assistant tab
-  fleet [--watch|--json]      agent overview (sessions + worktree agents)
   pane <label> <cmd> [args…]  title the pane "<label> - <project>", then exec cmd
   tab <name>                  focus a named tab
   open [query]                open/attach a project session (run from a shell)
@@ -20,7 +19,7 @@ import os
 import sys
 import time
 
-from . import assistants, fleet, projects, worktrees, zellij
+from . import assistants, projects, worktrees, zellij
 from .picker import fzf
 from .streamfmt import view
 from .util import paint, run, proc_alive, GREEN, RED, DIM
@@ -41,17 +40,6 @@ def cmd_assistant_toggle(args: argparse.Namespace) -> int:
 
 def cmd_assistant_spawn(args: argparse.Namespace) -> int:
     return assistants.spawn()
-
-
-# ── fleet ─────────────────────────────────────────────────────────────────
-def cmd_fleet(args: argparse.Namespace) -> int:
-    if args.json:
-        fleet.main_json()
-    elif args.watch:
-        fleet.main_watch()
-    else:
-        print(fleet.render())
-    return 0
 
 
 # ── pane: title the pane, then exec the tool (layout launcher) ──────────────
@@ -295,11 +283,6 @@ def main(argv: list[str] | None = None) -> int:
         func=cmd_assistant_spawn)
     sub.add_parser("assistant-toggle", help="compatibility alias for assistant-spawn").set_defaults(
         func=cmd_assistant_toggle)
-
-    f = sub.add_parser("fleet", help="agent overview (sessions + worktree agents)")
-    f.add_argument("--watch", action="store_true", help="refresh every 2s")
-    f.add_argument("--json", action="store_true", help="machine-readable output")
-    f.set_defaults(func=cmd_fleet)
 
     pa = sub.add_parser("pane", help="title the pane, then exec a tool (layout use)")
     pa.add_argument("label")

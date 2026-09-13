@@ -20,7 +20,6 @@ alias lg='lazygit'
 alias agent='zellij --layout agent'   # ad-hoc agent workspace in $PWD
 # Everything is the `hive` CLI (run `hive --help`). Bare `hive` opens the project
 # switcher; the rest are zellij keybinds (Alt-s/w/g) or `hive wt …`.
-alias fleet='hive fleet'              # agent overview
 
 # Project roots for `hive`/`switch` (colon-separated); default is ~/projects.
 # Override per-machine by uncommenting / editing:

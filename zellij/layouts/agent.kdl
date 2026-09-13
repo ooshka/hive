@@ -4,12 +4,12 @@
 //   Alt-1 focuses the assistant area, cycling through assistant tabs when
 //   already there.
 //
-//     Alt-1 assistant/cycle   Alt-a new assistant   Alt-2 nvim   Alt-3 lazygit   Alt-4 fleet
+//     Alt-1 assistant/cycle   Alt-a new assistant   Alt-2 nvim   Alt-3 lazygit
 //
 // Each tool launches through `hive pane <label> <cmd>`, which renames the pane
 // to "<label> - <project>" (project = the zellij session name) so you can tell
-// which project you're in, e.g. "Claude - dev-globe". The fleet tab
-// self-refreshes every 2s. Panes inherit the cwd zellij is launched from.
+// which project you're in, e.g. "Claude - dev-globe". Panes inherit the cwd
+// zellij is launched from.
 
 layout {
     tab name="assistant-start" focus=true {
@@ -32,13 +32,6 @@ layout {
             name "lazygit"
             command "hive"
             args "pane" "Git" "lazygit"
-        }
-    }
-    tab name="fleet" {
-        pane {
-            name "fleet"
-            command "hive"
-            args "pane" "Fleet" "hive" "fleet" "--watch"
         }
     }
 }

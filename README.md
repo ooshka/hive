@@ -2,18 +2,17 @@
 
 A keyboard-driven, multi-session workspace for running and monitoring coding
 agents, built on **zellij**. Each project gets a named session with assistant,
-nvim, lazygit, and fleet tabs, and you jump between projects and tabs without
-the mouse. Hive starts one assistant tab using
-`HIVE_AGENT_DEFAULT`; `Alt-a` creates another tab of that same assistant, and
-`Alt-1` cycles through assistant tabs.
+nvim, and lazygit tabs, and you jump between projects and tabs without the mouse.
+Hive starts one assistant tab using `HIVE_AGENT_DEFAULT`; `Alt-a` creates another
+tab of that same assistant, and `Alt-1` cycles through assistant tabs.
 
 Portable across machines: clone, install missing tools, run `./install.sh`.
 The setup is symlink-based, so edits live in this repo and sync via `git pull`.
 
 ```
-Tab 1 [assistant] Tab 2 [edit]   Tab 3 [git]    Tab 4 [fleet]
-  claude/codex      nvim           lazygit        agent overview
-   Alt-1 / Alt-a    Alt-2          Alt-3           Alt-4
+Tab 1 [assistant] Tab 2 [edit]   Tab 3 [git]
+  claude/codex      nvim           lazygit
+   Alt-1 / Alt-a    Alt-2          Alt-3
 ```
 
 ## What's in here
@@ -22,16 +21,15 @@ Tab 1 [assistant] Tab 2 [edit]   Tab 3 [git]    Tab 4 [fleet]
 |------|------|
 | `bin/hive`                  | the one entry point (symlinked onto PATH); resolves the repo and dispatches to `hivelib` |
 | `hivelib/`                  | the logic, as a small Python package (one concern per module) — see [Architecture](#architecture) |
-| `zellij/config.kdl`         | base config: `Alt-1..4` tab jumps, `Alt-s` open/switch, `Alt-w` close, `Alt-g` agents, `Alt-d` detach |
-| `zellij/layouts/agent.kdl`  | the four-tab layout (each tab launched via `hive pane`) |
-| `shell/agent-workflow.sh`   | sourced from `~/.bashrc`: PATH, `EDITOR`, fzf, `lg`/`agent`/`fleet` aliases, `PROJ_ROOTS` |
+| `zellij/config.kdl`         | base config: `Alt-1..3` tab jumps, `Alt-s` open/switch, `Alt-w` close, `Alt-g` agents, `Alt-d` detach |
+| `zellij/layouts/agent.kdl`  | the three-tab layout (each tab launched via `hive pane`) |
+| `shell/agent-workflow.sh`   | sourced from `~/.bashrc`: PATH, `EDITOR`, fzf, `lg`/`agent` aliases, `PROJ_ROOTS` |
 | `git/attributes`            | optional global gitattributes (LF normalization for WSL/Windows) |
 | `install.sh` / `uninstall.sh` | symlink things into place / back out cleanly |
 | `REQUIREMENTS.md`           | the tools you need and how to install them |
 
 Everything is one CLI: run `hive --help`. Bare **`hive`** opens the project
-switcher; the `fleet` alias (→ `hive fleet`) is there for muscle memory; the rest
-are zellij keybinds.
+switcher; the rest are zellij keybinds and `hive wt …` helpers.
 
 ## Architecture
 
@@ -47,17 +45,15 @@ Python; shell out only for spawning tools** (zellij, fzf, git, tail, nvim, codex
 | `hivelib/util.py`       | ANSI colour, age/string formatting, `run()`, `pgrep` |
 | `hivelib/projects.py`   | project-root scanning, name sanitisation |
 | `hivelib/zellij.py`     | thin zellij CLI wrappers (sessions, switch, rename-pane, new-pane) |
-| `hivelib/sessions.py`   | interactive session discovery (`~/.claude/sessions`) |
 | `hivelib/worktrees.py`  | worktree-agent discovery + status (`pgrep` / last `result` event) |
 | `hivelib/streamfmt.py`  | stream-json → readable lines (the `wt log` formatter) |
-| `hivelib/fleet.py`      | the grouped fleet tree / `--watch` / `--json` |
 | `hivelib/picker.py`     | shared fzf wrapper (open / switch / agents) |
 
-Subcommands: `fleet`, `pane` (layout launcher), `tab` (named tab focus),
-`open` (shell-side), `switch` / `close` / `agents` (in-zellij, bound to
-`Alt-s`/`Alt-w`/`Alt-g`), and
-`wt log|kill|edit`. The zellij config calls `hive` directly — e.g. the layout runs
-`command "hive"  args "assistant"`, and `Alt-g` runs `Run "hive" "agents"`.
+Subcommands: `pane` (layout launcher), `tab` (named tab focus), `open`
+(shell-side), `switch` / `close` / `agents` (in-zellij, bound to
+`Alt-s`/`Alt-w`/`Alt-g`), and `wt log|kill|edit`. The zellij config calls `hive`
+directly — e.g. the layout runs `command "hive"  args "assistant"`, and `Alt-g`
+runs `Run "hive" "agents"`.
 Because `hive` resolves the repo from its symlink, only `bin/hive` is symlinked;
 the package stays in the repo, so a `git pull` updates the logic with no reinstall.
 
@@ -99,7 +95,6 @@ Inside a session:
 | `Alt-a` | create another `HIVE_AGENT_DEFAULT` assistant tab |
 | `Alt-2` | editor (nvim) tab |
 | `Alt-3` | git (lazygit) tab |
-| `Alt-4` | fleet tab (agent overview, self-refreshes every 2s) |
 | `Alt-s` | **open or switch** projects (fzf picker — opens unopened projects too) |
 | `Alt-w` | **close** the current project, switching to another live one (stays in zellij) |
 | `Alt-g` | **manage worktree agents** (fzf picker: live log preview, kill, edit) |
@@ -132,35 +127,10 @@ Both `hive`/`hive open` (shell) and `Alt-s` (in-zellij) only *reattach* to a
 > Changed `agent.kdl`? A *live* session keeps the old layout until you end it
 > (`Ctrl-q` / `zellij kill-session <name>`); then `hive open <name>` rebuilds it fresh.
 
-## The fleet overview (`fleet`)
-
-Reads `~/.claude/sessions/<pid>.json` (one per running Claude process), prunes
-dead PIDs, and shows each live session: project (cwd), busy/idle status, kind,
-git branch, age, and current in-progress task (from `~/.claude/tasks/<sessionId>/`).
-`→` marks the current session. `fleet` prints once; `fleet --watch` live-refreshes
-(the Alt-4 tab uses `--watch`); `fleet --json` emits `{sessions, worktrees}` for tooling.
-
-**Worktree agents** (headless background agents from the `worktree` skill) appear
-as a **sub-tree under their repo**:
-
-```
-○   webapp           idle    interactive main    58m  —
-      └ ● wt/login-fix    running  3m   editing auth.py
-      └ ✓ wt/index-bug    done     1h   result: ok
-```
-
-fleet discovers them by scanning `$WORKTREE_BASE/<repo>/<name>/.claude/agent-session`
-(default `~/projects/worktrees`). Status: `pgrep -f <session-id>` → **running**;
-otherwise the log's last `result` event → **✓ done** / **✗ failed**, or **· stopped**.
-
-> **Local only.** These are Claude processes on this machine. Scheduled/remote
-> agents run on Anthropic's infra and aren't on disk — use the desktop app's
-> FleetView for those.
-
 ## Worktree agents: control (`Alt-g`)
 
-`fleet` is read-only visibility; **`Alt-g`** runs `hive agents`, an fzf picker over
-the worktree agents with a **live log preview** and actions:
+**`Alt-g`** runs `hive agents`, an fzf picker over the worktree agents with a
+**live log preview** and actions:
 
 | Key | Action |
 |-----|--------|
@@ -192,7 +162,7 @@ pane here.
   unset. `Alt-a` creates another tab of that same assistant; `Alt-1` focuses the
   assistant area and cycles through assistant tabs when already there. If the
   configured tool is not installed, the tab stays open with an explanatory shell.
-- **Worktree base** — `hive fleet`/`agents` discover agents under `~/projects/worktrees`;
+- **Worktree base** — `hive agents` discovers agents under `~/projects/worktrees`;
   override with `export WORKTREE_BASE=...` (matches the `worktree` skill).
 - **Clipboard** — the zellij `copy_command` copies to the host clipboard using
   `pbcopy` on macOS, `win32yank.exe` on WSL, `wl-copy` on Wayland, or `xclip` on

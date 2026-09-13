@@ -53,14 +53,6 @@ keybinds {
                 height "1"
             }
         }
-        bind "Alt 4" {
-            Run "hive" "tab" "fleet" {
-                floating true
-                close_on_exit true
-                width "1"
-                height "1"
-            }
-        }
 
         // Alt-d -> detach (leave the session running in the background).
         bind "Alt d" { Detach; }

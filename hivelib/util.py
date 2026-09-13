@@ -13,7 +13,7 @@ _STDOUT_TTY = sys.stdout.isatty()
 
 
 def color(code: str, s: object) -> str:
-    """Colour `s` only when stdout is a terminal (for direct output like fleet)."""
+    """Colour `s` only when stdout is a terminal."""
     return f"\033[{code}m{s}\033[0m" if _STDOUT_TTY else str(s)
 
 

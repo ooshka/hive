@@ -11,7 +11,7 @@ Target platform: **WSL2 / Ubuntu** (x86_64). Adjust for other distros as needed.
 | Tool        | Role                          | In apt? | Notes |
 |-------------|-------------------------------|---------|-------|
 | bash        | scripts (`proj`, `zswitch`)   | ✓ (preinstalled) | |
-| python3     | `fleet` overview              | ✓ (preinstalled) | stdlib only, no pip deps |
+| python3     | `hive` CLI                    | ✓ (preinstalled) | stdlib only, no pip deps |
 | git         | version control + `proj`/lazygit | ✓ | |
 | curl        | downloading release tarballs  | ✓ | only needed to fetch the binaries below |
 | fzf         | fuzzy project/session picker  | ✓ | apt version is fine |
@@ -35,7 +35,7 @@ sudo apt-get install -y bash python3 git curl fzf
 ```
 
 > `bash`, `python3`, and `git` are almost certainly already present — listed for
-> completeness. `fleet` uses only the Python standard library, so there is no
+> completeness. Hive uses only the Python standard library, so there is no
 > `pip install` step.
 
 ## Tools not in apt (release binaries → `~/.local/bin`)
