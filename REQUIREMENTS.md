@@ -81,11 +81,11 @@ Install at least one assistant CLI on `PATH`:
 - `claude` for Claude Code
 - `codex` for Codex
 
-The assistant area launches through `hive assistant`. It creates separate Codex
-and Claude tabs, so both can stay alive while the inactive assistant is fully
-hidden. `Alt-a` rotates between them. If one tool is not installed, its tab stays
-open with a clear message and a shell instead of failing with a bare
-`command not found`.
+The assistant area launches through `hive assistant`. Hive starts one assistant
+tab using `HIVE_AGENT_DEFAULT`; `Alt-a` creates another tab of that same
+assistant, and `Alt-1` cycles through assistant tabs. If the configured tool is
+not installed, its tab stays open with a clear message and a shell instead of
+failing with a bare `command not found`.
 
 Set the initially selected assistant with `HIVE_AGENT_DEFAULT`. Claude is the
 default when the variable is unset:

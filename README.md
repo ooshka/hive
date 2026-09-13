@@ -1,18 +1,18 @@
 # hive
 
 A keyboard-driven, multi-session workspace for running and monitoring coding
-agents, built on **zellij**. Each project gets a named session with four
-full-screen tabs — **assistant / nvim / lazygit / fleet** — and you jump between
-projects and tabs without the mouse. The assistant tab keeps Codex and Claude
-alive in separate tabs, with a hotkey to rotate between them while the inactive
-assistant is fully hidden.
+agents, built on **zellij**. Each project gets a named session with assistant,
+nvim, lazygit, and fleet tabs, and you jump between projects and tabs without
+the mouse. Hive starts one assistant tab using
+`HIVE_AGENT_DEFAULT`; `Alt-a` creates another tab of that same assistant, and
+`Alt-1` cycles through assistant tabs.
 
 Portable across machines: clone, install missing tools, run `./install.sh`.
 The setup is symlink-based, so edits live in this repo and sync via `git pull`.
 
 ```
 Tab 1 [assistant] Tab 2 [edit]   Tab 3 [git]    Tab 4 [fleet]
-  codex/claude      nvim           lazygit        agent overview
+  claude/codex      nvim           lazygit        agent overview
    Alt-1 / Alt-a    Alt-2          Alt-3           Alt-4
 ```
 
@@ -43,7 +43,7 @@ Python; shell out only for spawning tools** (zellij, fzf, git, tail, nvim, codex
 | Module | Responsibility |
 |--------|----------------|
 | `hivelib/cli.py`        | argparse dispatch + the subcommand handlers |
-| `hivelib/assistants.py` | Codex/Claude tab focus and missing-tool messages |
+| `hivelib/assistants.py` | default assistant tab spawning, focus/cycle, and missing-tool messages |
 | `hivelib/util.py`       | ANSI colour, age/string formatting, `run()`, `pgrep` |
 | `hivelib/projects.py`   | project-root scanning, name sanitisation |
 | `hivelib/zellij.py`     | thin zellij CLI wrappers (sessions, switch, rename-pane, new-pane) |
@@ -53,8 +53,9 @@ Python; shell out only for spawning tools** (zellij, fzf, git, tail, nvim, codex
 | `hivelib/fleet.py`      | the grouped fleet tree / `--watch` / `--json` |
 | `hivelib/picker.py`     | shared fzf wrapper (open / switch / agents) |
 
-Subcommands: `fleet`, `pane` (layout launcher), `open` (shell-side), `switch` /
-`close` / `agents` (in-zellij, bound to `Alt-s`/`Alt-w`/`Alt-g`), and
+Subcommands: `fleet`, `pane` (layout launcher), `tab` (named tab focus),
+`open` (shell-side), `switch` / `close` / `agents` (in-zellij, bound to
+`Alt-s`/`Alt-w`/`Alt-g`), and
 `wt log|kill|edit`. The zellij config calls `hive` directly — e.g. the layout runs
 `command "hive"  args "assistant"`, and `Alt-g` runs `Run "hive" "agents"`.
 Because `hive` resolves the repo from its symlink, only `bin/hive` is symlinked;
@@ -94,8 +95,8 @@ Inside a session:
 
 | Key | Action |
 |-----|--------|
-| `Alt-1` | assistant tab (Codex/Claude) |
-| `Alt-a` | rotate between Codex and Claude in the assistant tab |
+| `Alt-1` | focus the assistant area; cycle assistants when already on an assistant tab |
+| `Alt-a` | create another `HIVE_AGENT_DEFAULT` assistant tab |
 | `Alt-2` | editor (nvim) tab |
 | `Alt-3` | git (lazygit) tab |
 | `Alt-4` | fleet tab (agent overview, self-refreshes every 2s) |
@@ -186,11 +187,11 @@ pane here.
 - **Project roots** — `hive open`/`switch` scan `~/projects` by default. Override
   per-shell with `export PROJ_ROOTS="/path/a:/path/b"`, or uncomment the line in
   `shell/agent-workflow.sh`.
-- **Assistant tab** — set `HIVE_AGENT_DEFAULT=claude` or `codex` to choose
-  which assistant tab is selected first. Claude is the default when the variable
-  is unset. Both assistant tabs are created and stay alive; `Alt-a` rotates
-  between them while keeping the inactive assistant hidden. If one tool is not
-  installed, its tab stays open with an explanatory shell.
+- **Assistant tabs** — set `HIVE_AGENT_DEFAULT=claude` or `codex` to choose
+  which assistant Hive launches. Claude is the default when the variable is
+  unset. `Alt-a` creates another tab of that same assistant; `Alt-1` focuses the
+  assistant area and cycles through assistant tabs when already there. If the
+  configured tool is not installed, the tab stays open with an explanatory shell.
 - **Worktree base** — `hive fleet`/`agents` discover agents under `~/projects/worktrees`;
   override with `export WORKTREE_BASE=...` (matches the `worktree` skill).
 - **Clipboard** — the zellij `copy_command` copies to the host clipboard using

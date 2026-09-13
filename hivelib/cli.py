@@ -1,11 +1,12 @@
 """hive — single entry point for the zellij assistant workspace.
 
 Subcommands:
-  assistant                  create the first tab's Codex/Claude panes
+  assistant                  focus/cycle HIVE_AGENT_DEFAULT assistant tabs
   assistant-shell <name>     run one assistant pane
-  assistant-toggle           rotate between Codex/Claude tabs
+  assistant-spawn            create another HIVE_AGENT_DEFAULT assistant tab
   fleet [--watch|--json]      agent overview (sessions + worktree agents)
   pane <label> <cmd> [args…]  title the pane "<label> - <project>", then exec cmd
+  tab <name>                  focus a named tab
   open [query]                open/attach a project session (run from a shell)
   switch                      open or switch projects (inside zellij; Alt-s)
   close                       close current project, stay in zellij (Alt-w)
@@ -27,7 +28,7 @@ from .util import paint, run, proc_alive, GREEN, RED, DIM
 
 # ── assistant tab ──────────────────────────────────────────────────────────
 def cmd_assistant(args: argparse.Namespace) -> int:
-    return assistants.bootstrap()
+    return assistants.focus()
 
 
 def cmd_assistant_shell(args: argparse.Namespace) -> int:
@@ -36,6 +37,10 @@ def cmd_assistant_shell(args: argparse.Namespace) -> int:
 
 def cmd_assistant_toggle(args: argparse.Namespace) -> int:
     return assistants.toggle()
+
+
+def cmd_assistant_spawn(args: argparse.Namespace) -> int:
+    return assistants.spawn()
 
 
 # ── fleet ─────────────────────────────────────────────────────────────────
@@ -63,6 +68,13 @@ def cmd_pane(args: argparse.Namespace) -> int:
     sys.stdout.flush()
     os.execvp(cmd[0], cmd)
     return 0  # unreachable
+
+
+def cmd_tab(args: argparse.Namespace) -> int:
+    if not zellij.inside():
+        print("hive tab only works inside zellij.", file=sys.stderr)
+        return 1
+    return zellij.go_to_tab_name(args.name)
 
 
 # ── open: shell-side project launcher (the old `proj`) ──────────────────────
@@ -274,12 +286,14 @@ def main(argv: list[str] | None = None) -> int:
         "Run `hive` with no subcommand to open the project switcher.")
     sub = p.add_subparsers(dest="cmd")
 
-    sub.add_parser("assistant", help="focus configured Codex/Claude assistant tab").set_defaults(
+    sub.add_parser("assistant", help="focus/cycle HIVE_AGENT_DEFAULT assistant tabs").set_defaults(
         func=cmd_assistant)
     ash = sub.add_parser("assistant-shell", help="run one assistant pane (layout use)")
     ash.add_argument("name")
     ash.set_defaults(func=cmd_assistant_shell)
-    sub.add_parser("assistant-toggle", help="rotate between Codex/Claude tabs").set_defaults(
+    sub.add_parser("assistant-spawn", help="create another HIVE_AGENT_DEFAULT assistant tab").set_defaults(
+        func=cmd_assistant_spawn)
+    sub.add_parser("assistant-toggle", help="compatibility alias for assistant-spawn").set_defaults(
         func=cmd_assistant_toggle)
 
     f = sub.add_parser("fleet", help="agent overview (sessions + worktree agents)")
@@ -291,6 +305,10 @@ def main(argv: list[str] | None = None) -> int:
     pa.add_argument("label")
     pa.add_argument("cmd", nargs=argparse.REMAINDER)
     pa.set_defaults(func=cmd_pane)
+
+    tab = sub.add_parser("tab", help="focus a named tab")
+    tab.add_argument("name")
+    tab.set_defaults(func=cmd_tab)
 
     o = sub.add_parser("open", help="open/attach a project session (from a shell)")
     o.add_argument("query", nargs="?")

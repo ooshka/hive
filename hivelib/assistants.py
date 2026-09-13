@@ -1,11 +1,11 @@
-"""Create and focus persistent Codex/Claude assistant tabs."""
+"""Create and focus persistent default-assistant tabs."""
 from __future__ import annotations
 
 import json
 import os
+import re
 import shutil
 import sys
-import time
 
 from .util import run
 
@@ -23,7 +23,6 @@ TOOLS = {
     },
 }
 
-DEFAULT_ORDER = ("claude", "codex")
 VALID_DEFAULTS = ("codex", "claude")
 
 
@@ -75,10 +74,14 @@ def _tab_id(name: str) -> str | None:
     return None
 
 
+def _tab_name(tab: dict) -> str:
+    return str(tab.get("name") or tab.get("tab_name") or "")
+
+
 def _active_tab_name() -> str:
     for tab in _tabs():
         if tab.get("active") or tab.get("is_active") or tab.get("focused"):
-            return str(tab.get("name") or tab.get("tab_name") or "")
+            return _tab_name(tab)
     rc, out = run(["zellij", "action", "current-tab-info", "--json"], timeout=2)
     if rc != 0 or not out:
         return ""
@@ -86,32 +89,78 @@ def _active_tab_name() -> str:
         info = json.loads(out)
     except json.JSONDecodeError:
         return ""
-    return str(info.get("name") or info.get("tab_name") or "")
+    return _tab_name(info)
 
 
-def bootstrap() -> int:
-    """Focus the configured default assistant tab, then remove the bootstrap tab."""
+def _default() -> str | None:
     default = os.environ.get("HIVE_AGENT_DEFAULT", "claude").strip().lower() or "claude"
     if default not in VALID_DEFAULTS:
         print(f"Invalid HIVE_AGENT_DEFAULT={default!r}; expected codex or claude",
               file=sys.stderr)
-        return 2
+        return None
+    return default
 
+
+def _assistant_tabs(name: str) -> list[str]:
+    names = [_tab_name(tab) for tab in _tabs()]
+    return [n for n in names if n == name or n.startswith(f"{name}:")]
+
+
+def _next_tab_name(name: str) -> str:
+    nums = []
+    for tab in _assistant_tabs(name):
+        if tab == name:
+            nums.append(1)
+            continue
+        match = re.fullmatch(rf"{re.escape(name)}:(\d+)", tab)
+        if match:
+            nums.append(int(match.group(1)))
+    return f"{name}:{(max(nums) + 1) if nums else 1}"
+
+
+def _close_bootstrap() -> None:
     bootstrap_id = _tab_id("assistant-start")
-    for _ in range(20):
-        if _tab_id("claude") and _tab_id("codex"):
-            break
-        time.sleep(0.1)
-
-    run(["zellij", "action", "go-to-tab-name", default], timeout=5)
     if bootstrap_id:
         run(["zellij", "action", "close-tab", "--tab-id", bootstrap_id], timeout=5)
+
+
+def spawn() -> int:
+    """Create another tab running HIVE_AGENT_DEFAULT."""
+    default = _default()
+    if default is None:
+        return 2
+    tab_name = _next_tab_name(default)
+    tool = TOOLS[default]
+    label = f"{tool['label']} {tab_name.rsplit(':', 1)[-1]}"
+    args = ["zellij", "action", "new-tab", "--name", tab_name, "-c", os.getcwd(), "--",
+            "hive", "pane", label, "hive", "assistant-shell", default]
+    rc, _ = run(args, timeout=5)
+    if rc != 0:
+        return rc
+    _close_bootstrap()
+    return 0
+
+
+def focus() -> int:
+    """Focus the default assistant, cycling when already on a default-assistant tab."""
+    default = _default()
+    if default is None:
+        return 2
+
+    tabs = _assistant_tabs(default)
+    if not tabs:
+        return spawn()
+
+    active = _active_tab_name()
+    if active in tabs:
+        target = tabs[(tabs.index(active) + 1) % len(tabs)]
+    else:
+        target = tabs[0]
+    run(["zellij", "action", "go-to-tab-name", target], timeout=5)
+    _close_bootstrap()
     return 0
 
 
 def toggle() -> int:
-    """Rotate between the two assistant tabs."""
-    active = _active_tab_name()
-    target = "codex" if active == "claude" else "claude"
-    run(["zellij", "action", "go-to-tab-name", target], timeout=5)
-    return 0
+    """Compatibility alias for the old Alt-a command."""
+    return spawn()

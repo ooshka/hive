@@ -40,6 +40,11 @@ def rename_pane(pid: str, title: str) -> None:
     run(["zellij", "action", "rename-pane", "--pane-id", pid, title], timeout=2)
 
 
+def go_to_tab_name(name: str) -> int:
+    rc, _ = run(["zellij", "action", "go-to-tab-name", name], timeout=5)
+    return rc
+
+
 def kill_session(name: str) -> None:
     run(["zellij", "kill-session", name], timeout=5)
 

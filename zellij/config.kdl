@@ -30,16 +30,37 @@ keybinds {
             }
         }
         bind "Alt a" {
-            Run "hive" "assistant-toggle" {
+            Run "hive" "assistant-spawn" {
                 floating true
                 close_on_exit true
                 width "1"
                 height "1"
             }
         }
-        bind "Alt 2" { GoToTab 3; }   // editor (nvim)
-        bind "Alt 3" { GoToTab 4; }   // git (lazygit)
-        bind "Alt 4" { GoToTab 5; }   // fleet (agent overview)
+        bind "Alt 2" {
+            Run "hive" "tab" "edit" {
+                floating true
+                close_on_exit true
+                width "1"
+                height "1"
+            }
+        }
+        bind "Alt 3" {
+            Run "hive" "tab" "git" {
+                floating true
+                close_on_exit true
+                width "1"
+                height "1"
+            }
+        }
+        bind "Alt 4" {
+            Run "hive" "tab" "fleet" {
+                floating true
+                close_on_exit true
+                width "1"
+                height "1"
+            }
+        }
 
         // Alt-d -> detach (leave the session running in the background).
         bind "Alt d" { Detach; }
