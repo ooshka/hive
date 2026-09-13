@@ -132,7 +132,7 @@ def spawn() -> int:
     tab_name = _next_tab_name(default)
     tool = TOOLS[default]
     label = f"{tool['label']} {tab_name.rsplit(':', 1)[-1]}"
-    args = ["zellij", "action", "new-tab", "--name", tab_name, "-c", os.getcwd(), "--",
+    args = ["zellij", "action", "new-tab", "--layout", "hive-assistant", "--name", tab_name, "-c", os.getcwd(), "--",
             "hive", "pane", label, "hive", "assistant-shell", default]
     rc, _ = run(args, timeout=5)
     if rc != 0:

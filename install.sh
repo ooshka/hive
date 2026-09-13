@@ -14,6 +14,7 @@ set -euo pipefail
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BIN_DIR="$HOME/.local/bin"
 ZELLIJ_DIR="$HOME/.config/zellij"
+ZELLIJ_PLUGIN_DIR="$ZELLIJ_DIR/plugins"
 LAZYGIT_DIR="$HOME/.config/lazygit"
 GITCFG_DIR="$HOME/.config/git"
 BASHRC="$HOME/.bashrc"
@@ -67,9 +68,37 @@ check_deps() {
       yellow "  ◦ $t — missing (optional assistant)"
     fi
   done
+  for t in cargo rustup; do
+    if command -v "$t" >/dev/null 2>&1; then
+      dim "  ✓ $t ($(command -v "$t"))"
+    else
+      yellow "  ◦ $t — missing (required to build the hive zellij plugin)"
+    fi
+  done
   [ "$agents" -eq 0 ] && yellow "  ! no assistant CLI found — install claude or codex when you want that pane to launch one"
   [ "$missing" -eq 1 ] && yellow "  → install missing tools per REQUIREMENTS.md, then re-run."
   return 0
+}
+
+build_plugin() {
+  local dir="$REPO/plugins/hive-orchestrator"
+  local dest="$ZELLIJ_PLUGIN_DIR/hive-orchestrator.wasm"
+  local target="wasm32-wasip1"
+
+  echo "Building zellij plugin → $ZELLIJ_PLUGIN_DIR"
+  if ! command -v cargo >/dev/null 2>&1 || ! command -v rustup >/dev/null 2>&1; then
+    yellow "  ! cargo/rustup missing — cannot build hive-orchestrator"
+    yellow "    Install Rust, then run: rustup target add wasm32-wasip1 && ./install.sh"
+    return 1
+  fi
+
+  if ! rustup target list --installed | grep -qx "$target"; then
+    yellow "  ! WASM target missing — run: rustup target add $target"
+    return 1
+  fi
+  cargo build --locked --manifest-path "$dir/Cargo.toml" --target "$target"
+  mkdir -p "$ZELLIJ_PLUGIN_DIR"
+  link "$dir/target/$target/debug/hive-orchestrator.wasm" "$dest"
 }
 
 if [ "$CHECK_ONLY" -eq 1 ]; then
@@ -79,6 +108,8 @@ fi
 
 echo "Installing from $REPO"
 echo
+build_plugin
+
 echo "Linking scripts → $BIN_DIR"
 for f in "$REPO"/bin/*; do
   link "$f" "$BIN_DIR/$(basename "$f")"
@@ -96,6 +127,7 @@ done
 echo "Linking zellij config → $ZELLIJ_DIR"
 link "$REPO/zellij/config.kdl"        "$ZELLIJ_DIR/config.kdl"
 link "$REPO/zellij/layouts/agent.kdl" "$ZELLIJ_DIR/layouts/agent.kdl"
+link "$REPO/zellij/layouts/hive-assistant.kdl" "$ZELLIJ_DIR/layouts/hive-assistant.kdl"
 
 echo "Linking lazygit config → $LAZYGIT_DIR"
 link "$REPO/lazygit/config.yml" "$LAZYGIT_DIR/config.yml"

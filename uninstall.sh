@@ -31,6 +31,8 @@ for f in "$REPO"/bin/*; do
 done
 unlink_one "$ZELLIJ_DIR/config.kdl"
 unlink_one "$ZELLIJ_DIR/layouts/agent.kdl"
+unlink_one "$ZELLIJ_DIR/layouts/hive-assistant.kdl"
+unlink_one "$ZELLIJ_DIR/plugins/hive-orchestrator.wasm"
 unlink_one "$GITCFG_DIR/attributes"
 
 # Strip the marker block from ~/.bashrc, if present.

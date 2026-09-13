@@ -8,6 +8,21 @@ from hivelib import assistants
 
 
 class AssistantTests(unittest.TestCase):
+    def test_spawn_uses_native_assistant_layout_and_keeps_command(self):
+        with patch.object(assistants, "_default", return_value="codex"), \
+                patch.object(assistants, "_next_tab_name", return_value="codex:2"), \
+                patch.object(assistants.os, "getcwd", return_value="/tmp/project"), \
+                patch.object(assistants, "run", return_value=(0, "7")) as run, \
+                patch.object(assistants, "_close_bootstrap") as close_bootstrap:
+            self.assertEqual(assistants.spawn(), 0)
+
+        run.assert_called_once_with([
+            "zellij", "action", "new-tab", "--layout", "hive-assistant",
+            "--name", "codex:2", "-c", "/tmp/project", "--",
+            "hive", "pane", "Codex 2", "hive", "assistant-shell", "codex",
+        ], timeout=5)
+        close_bootstrap.assert_called_once_with()
+
     def test_default_uses_claude_when_unset(self):
         with patch.dict(os.environ, {}, clear=True):
             self.assertEqual(assistants._default(), "claude")

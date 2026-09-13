@@ -22,11 +22,8 @@ pane_frames true
 keybinds {
     shared_except "locked" {
         bind "Alt 1" {
-            Run "hive" "assistant" {
-                floating true
-                close_on_exit true
-                width "1"
-                height "1"
+            MessagePlugin "hive-orchestrator" {
+                name "focus-agent"
             }
         }
         bind "Alt a" {
@@ -38,21 +35,21 @@ keybinds {
             }
         }
         bind "Alt 2" {
-            Run "hive" "tab" "edit" {
-                floating true
-                close_on_exit true
-                width "1"
-                height "1"
+            MessagePlugin "hive-orchestrator" {
+                name "focus-editor"
             }
         }
         bind "Alt 3" {
-            Run "hive" "tab" "git" {
-                floating true
-                close_on_exit true
-                width "1"
-                height "1"
+            MessagePlugin "hive-orchestrator" {
+                name "focus-git"
             }
         }
+        bind "Alt v" {
+            MessagePlugin "hive-orchestrator" {
+                name "toggle-split"
+            }
+        }
+        bind "Alt f" { ToggleFocusFullscreen; }
 
         // Alt-d -> detach (leave the session running in the background).
         bind "Alt d" { Detach; }
@@ -86,4 +83,12 @@ keybinds {
             }
         }
     }
+}
+
+plugins {
+    hive-orchestrator location="file:~/.config/zellij/plugins/hive-orchestrator.wasm"
+}
+
+load_plugins {
+    "hive-orchestrator"
 }

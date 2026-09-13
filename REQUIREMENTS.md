@@ -19,6 +19,7 @@ Target platform: **WSL2 / Ubuntu** (x86_64). Adjust for other distros as needed.
 | zellij      | terminal multiplexer          | ✗ | release binary or cargo |
 | lazygit     | git TUI tab                   | ✗ | release binary or PPA |
 | delta       | syntax-highlighting diff pager for lazygit | ✗ | release binary; lazygit's config routes diffs through it |
+| rustup/cargo | build Hive's Zellij plugin   | ✗ | needed for `Alt-v` live pane orchestration |
 | claude      | optional assistant CLI        | ✗ | install per Claude Code docs |
 | codex       | optional assistant CLI        | ✗ | install per Codex docs |
 
@@ -74,6 +75,17 @@ ln -sfn ~/.local/opt/nvim-linux-x86_64/bin/nvim ~/.local/bin/nvim
 ```
 > Or, if you prefer apt and a recent enough version is acceptable:
 > `sudo add-apt-repository ppa:neovim-ppa/unstable && sudo apt-get install -y neovim`
+
+### Rust / cargo
+
+Hive's assistant/editor split requires Zellij 0.44.3 and a small plugin compiled
+to WASM. Install Rust with rustup, then let `install.sh` build and link the plugin:
+
+```bash
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+rustup target add wasm32-wasip1
+./install.sh
+```
 
 ### assistant CLI: Claude and/or Codex
 Install at least one assistant CLI on `PATH`:

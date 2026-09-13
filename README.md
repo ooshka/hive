@@ -4,7 +4,8 @@ A keyboard-driven, multi-session workspace for running and monitoring coding
 agents, built on **zellij**. Each project gets a named session with assistant,
 nvim, and lazygit tabs, and you jump between projects and tabs without the mouse.
 Hive starts one assistant tab using `HIVE_AGENT_DEFAULT`; `Alt-a` creates another
-tab of that same assistant, and `Alt-1` cycles through assistant tabs.
+tab of that same assistant, and `Alt-1` cycles through assistant tabs. `Alt-v`
+toggles moving the live editor pane beside the active assistant.
 
 Portable across machines: clone, install missing tools, run `./install.sh`.
 The setup is symlink-based, so edits live in this repo and sync via `git pull`.
@@ -13,6 +14,7 @@ The setup is symlink-based, so edits live in this repo and sync via `git pull`.
 Tab 1 [assistant] Tab 2 [edit]   Tab 3 [git]
   claude/codex      nvim           lazygit
    Alt-1 / Alt-a    Alt-2          Alt-3
+   Alt-v pairs tab 1 + live nvim
 ```
 
 ## What's in here
@@ -23,6 +25,7 @@ Tab 1 [assistant] Tab 2 [edit]   Tab 3 [git]
 | `hivelib/`                  | the logic, as a small Python package (one concern per module) — see [Architecture](#architecture) |
 | `zellij/config.kdl`         | base config: `Alt-1..3` tab jumps, `Alt-s` open/switch, `Alt-w` close, `Alt-d` detach |
 | `zellij/layouts/agent.kdl`  | the three-tab layout (each tab launched via `hive pane`) |
+| `plugins/hive-orchestrator` | Zellij plugin for moving/focusing the live editor pane without helper panes |
 | `shell/agent-workflow.sh`   | sourced from `~/.bashrc`: PATH, `EDITOR`, fzf, `lg`/`agent` aliases, `PROJ_ROOTS` |
 | `git/attributes`            | optional global gitattributes (LF normalization for WSL/Windows) |
 | `install.sh` / `uninstall.sh` | symlink things into place / back out cleanly |
@@ -37,6 +40,8 @@ One Python CLI (`hive`), not a pile of shell scripts. `bin/hive` is a tiny entry
 point that follows its install symlink back to the repo, puts it on `sys.path`,
 and dispatches into the `hivelib` package. The guiding split: **logic and data in
 Python; shell out only for spawning tools** (zellij, fzf, git, tail, nvim, codex, claude).
+Live pane choreography is handled by a small Zellij plugin so keybinds can move
+and focus existing panes without launching temporary command panes.
 
 | Module | Responsibility |
 |--------|----------------|
@@ -46,6 +51,7 @@ Python; shell out only for spawning tools** (zellij, fzf, git, tail, nvim, codex
 | `hivelib/projects.py`   | project-root scanning, name sanitisation |
 | `hivelib/zellij.py`     | thin zellij CLI wrappers (sessions, switch, rename-pane, new-pane) |
 | `hivelib/picker.py`     | shared fzf wrapper (open / switch) |
+| `plugins/hive-orchestrator` | Rust/WASM Zellij plugin for assistant/editor split focus |
 
 Subcommands: `pane` (layout launcher), `tab` (named tab focus), `open`
 (shell-side), and `switch` / `close` (in-zellij, bound to `Alt-s`/`Alt-w`). The
@@ -72,7 +78,10 @@ source ~/.bashrc             # or open a new terminal
 
 `install.sh` is idempotent: it backs up any existing real file to `<file>.bak`
 before linking, and adds the `~/.bashrc` source line only once. It never
-installs tools — that stays manual (see `REQUIREMENTS.md`). `./uninstall.sh`
+installs tools — that stays manual (see `REQUIREMENTS.md`). Rust and the
+`wasm32-wasip1` target are required to build and link the Hive Zellij plugin.
+On first launch, accept Zellij's permission prompt for `hive-orchestrator`.
+`./uninstall.sh`
 removes the links and the source block (restoring any `.bak`).
 
 ## Daily use
@@ -89,9 +98,11 @@ Inside a session:
 | Key | Action |
 |-----|--------|
 | `Alt-1` | focus the assistant area; cycle assistants when already on an assistant tab |
-| `Alt-a` | create another `HIVE_AGENT_DEFAULT` assistant tab |
-| `Alt-2` | editor (nvim) tab |
-| `Alt-3` | git (lazygit) tab |
+| `Alt-a` | create another `HIVE_AGENT_DEFAULT` assistant tab, carrying the editor along if split |
+| `Alt-v` | move the live editor to the assistant's right; press again to return it to `edit` and focus the full-width agent |
+| `Alt-2` | focus the live editor pane; uses the editor tab when not split |
+| `Alt-3` | focus git (lazygit) tab |
+| `Alt-f` | toggle focused pane fullscreen |
 | `Alt-s` | **open or switch** projects (fzf picker — opens unopened projects too) |
 | `Alt-w` | **close** the current project, switching to another live one (stays in zellij) |
 | `Alt-d` | detach (session keeps running in the background) |

@@ -1,0 +1,13 @@
+// The CLI supplies the assistant command for this pane.
+// One swap layout makes Alt-v deterministic at any terminal aspect ratio.
+layout {
+    pane
+    swap_tiled_layout name="hive-side-by-side" {
+        tab {
+            pane split_direction="vertical" {
+                pane
+                pane
+            }
+        }
+    }
+}
