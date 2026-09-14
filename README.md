@@ -51,6 +51,7 @@ and focus existing panes without launching temporary command panes.
 | `hivelib/projects.py`   | project-root scanning, name sanitisation |
 | `hivelib/zellij.py`     | thin zellij CLI wrappers (sessions, switch, rename-pane, new-pane) |
 | `hivelib/picker.py`     | shared fzf wrapper (open / switch) |
+| `hivelib/zellij_permissions.py` | pre-seeds `hive-orchestrator`'s permission grant for `install.sh` |
 | `plugins/hive-orchestrator` | Rust/WASM Zellij plugin for assistant/editor split focus |
 
 Subcommands: `pane` (layout launcher), `tab` (named tab focus), `open`
@@ -80,8 +81,11 @@ source ~/.bashrc             # or open a new terminal
 before linking, and adds the `~/.bashrc` source line only once. It never
 installs tools — that stays manual (see `REQUIREMENTS.md`). Rust and the
 `wasm32-wasip1` target are required to build and link the Hive Zellij plugin.
-On first launch, accept Zellij's permission prompt for `hive-orchestrator`.
-`./uninstall.sh`
+`install.sh` also grants `hive-orchestrator` its Zellij permissions
+(`ReadCliPipes`, `ReadApplicationState`, `ChangeApplicationState`) directly in
+`~/.cache/zellij/permissions.kdl` — it's loaded as a headless background
+plugin (`load_plugins` in `zellij/config.kdl`), so there's no pane for
+Zellij's interactive permission prompt to render into. `./uninstall.sh`
 removes the links and the source block (restoring any `.bak`).
 
 ## Daily use

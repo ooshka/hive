@@ -101,6 +101,16 @@ build_plugin() {
   link "$dir/target/$target/debug/hive-orchestrator.wasm" "$dest"
 }
 
+# Grant hive-orchestrator its zellij permissions non-interactively. It's
+# loaded as a headless background plugin (no pane to answer the interactive
+# prompt from), so this must be pre-seeded rather than accepted on first run.
+preseed_permissions() {
+  local cache="$HOME/.cache/zellij/permissions.kdl"
+  local plugin_path="$ZELLIJ_PLUGIN_DIR/hive-orchestrator.wasm"
+  python3 "$REPO/hivelib/zellij_permissions.py" "$cache" "$plugin_path"
+  green "  + granted hive-orchestrator permissions in $cache"
+}
+
 if [ "$CHECK_ONLY" -eq 1 ]; then
   check_deps
   exit 0
@@ -109,6 +119,7 @@ fi
 echo "Installing from $REPO"
 echo
 build_plugin
+preseed_permissions
 
 echo "Linking scripts → $BIN_DIR"
 for f in "$REPO"/bin/*; do
