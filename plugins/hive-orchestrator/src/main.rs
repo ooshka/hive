@@ -11,6 +11,7 @@ struct State {
     permission_requested: bool,
     pending_new_agent: Option<usize>,
     pending_close_agent: Option<usize>,
+    last_assistant_tab: Option<usize>,
 }
 
 #[derive(Clone)]
@@ -40,6 +41,9 @@ impl ZellijPlugin for State {
                     }
                 }
                 self.tabs = tabs;
+                if let Some(tab) = self.active_assistant_tab() {
+                    self.last_assistant_tab = Some(tab.tab_id);
+                }
                 self.follow_new_agent();
                 false
             }
@@ -175,7 +179,14 @@ impl State {
 
             assistant_tabs[(current_index + 1) % assistant_tabs.len()].clone()
         } else {
-            assistant_tabs[0].clone()
+            self.last_assistant_tab
+                .and_then(|tab_id| {
+                    assistant_tabs
+                        .iter()
+                        .find(|tab| tab.tab_id == tab_id)
+                        .cloned()
+                })
+                .unwrap_or_else(|| assistant_tabs[0].clone())
         };
 
         if let Some(editor) = editor {
