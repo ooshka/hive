@@ -10,6 +10,7 @@ struct State {
     panes: Option<PaneManifest>,
     permission_requested: bool,
     pending_new_agent: Option<usize>,
+    pending_close_agent: Option<usize>,
 }
 
 #[derive(Clone)]
@@ -45,6 +46,7 @@ impl ZellijPlugin for State {
             Event::PaneUpdate(panes) => {
                 self.panes = Some(panes);
                 self.follow_new_agent();
+                self.finish_close_agent();
                 false
             }
             Event::Timer(_) => {
@@ -74,6 +76,7 @@ impl ZellijPlugin for State {
             "focus-editor" => self.focus_editor(),
             "focus-git" => go_to_tab_name("git"),
             "toggle-split" => self.toggle_split(),
+            "close-agent" => self.close_agent(),
             _ => {}
         }
         false
@@ -83,6 +86,45 @@ impl ZellijPlugin for State {
 }
 
 impl State {
+    fn close_agent(&mut self) {
+        let Some(active) = self.active_assistant_tab() else {
+            return;
+        };
+        // The oldest assistant tab is the initial session. Keep it available.
+        if self.assistant_tabs().first().map(|tab| tab.tab_id) == Some(active.tab_id) {
+            return;
+        }
+        if let Some(editor) = self.editor_pane().filter(|pane| pane.tab_position == active.position) {
+            self.pending_close_agent = Some(active.tab_id);
+            if let Some(edit_tab) = self.tabs.iter().find(|tab| tab.name == "edit") {
+                if let Some(anchor) = self.panes_in_tab(edit_tab.position).first() {
+                    stack_panes(vec![anchor.pane_id, editor.pane_id]);
+                } else {
+                    self.pending_close_agent = None;
+                }
+            } else {
+                break_panes_to_new_tab(&[editor.pane_id], Some("edit".to_string()), false);
+            }
+        } else {
+            close_tab_with_id(active.tab_id as u64);
+        }
+    }
+
+    fn finish_close_agent(&mut self) {
+        let Some(tab_id) = self.pending_close_agent else {
+            return;
+        };
+        let Some(tab) = self.tabs.iter().find(|tab| tab.tab_id == tab_id) else {
+            self.pending_close_agent = None;
+            return;
+        };
+        if self.editor_pane().is_some_and(|pane| pane.tab_position == tab.position) {
+            return;
+        }
+        self.pending_close_agent = None;
+        close_tab_with_id(tab_id as u64);
+    }
+
     fn follow_new_agent(&mut self) {
         let Some(tab_id) = self.pending_new_agent else {
             return;

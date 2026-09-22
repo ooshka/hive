@@ -34,6 +34,11 @@ keybinds {
                 height "1"
             }
         }
+        bind "Alt x" {
+            MessagePlugin "hive-orchestrator" {
+                name "close-agent"
+            }
+        }
         bind "Alt 2" {
             MessagePlugin "hive-orchestrator" {
                 name "focus-editor"

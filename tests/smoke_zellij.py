@@ -149,7 +149,22 @@ try:
     assert next(p for p in panes() if p['title'] == 'Codex 3 - smoke')['is_focused']
     key('s')
     check_unsplit('Codex 3 - smoke')
-    print('PASS all native keybindings; pane IDs unchanged', flush=True)
+    key('x')
+    assert not any(p['title'] == 'Codex 3 - smoke' for p in panes())
+    original_ids = {p['id'] for p in panes()}
+    action('go-to-tab-name', 'codex:2')
+    drain(1)
+    key('s')
+    check_split('Codex 2 - smoke')
+    key('x')
+    state = panes()
+    assert not any(p['title'] == 'Codex 2 - smoke' for p in state), state
+    assert next(p for p in state if p['title'] == 'Editor - smoke')['tab_name'] == 'edit', state
+    action('go-to-tab-name', 'codex:1')
+    drain(1)
+    key('x')
+    assert any(p['title'] == 'Codex - smoke' for p in panes())
+    print('PASS native keybindings, including assistant close', flush=True)
 finally:
     subprocess.run(['zellij', 'kill-session', session], env=env, capture_output=True, timeout=10)
     drain(1)

@@ -8,6 +8,8 @@ Pressing Alt-s again returns that pane to `edit` and focuses the full-width
 assistant. Alt-1 cycles assistants, carrying the editor along when split.
 Spawning an assistant with Alt-a also carries the split editor to the new tab
 and leaves keyboard focus on the new agent.
+Alt-x closes the active assistant tab while preserving the first one. If the
+editor is split beside it, the editor returns to its own tab before closing.
 
 Zellij 0.44.3 mixes tab positions and stable IDs in its break-to-existing-tab
 implementation. This plugin instead groups panes by their pane IDs with

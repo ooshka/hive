@@ -103,6 +103,7 @@ Inside a session:
 |-----|--------|
 | `Alt-1` | focus the assistant area; cycle assistants when already on an assistant tab |
 | `Alt-a` | create another `HIVE_AGENT_DEFAULT` assistant tab, carrying the editor along if split |
+| `Alt-x` | close the active assistant tab, except the first; return a split editor to `edit` |
 | `Alt-s` | move the live editor to the assistant's right; press again to return it to `edit` and focus the full-width agent |
 | `Alt-2` | focus the live editor pane; uses the editor tab when not split |
 | `Alt-3` | focus git (lazygit) tab |
