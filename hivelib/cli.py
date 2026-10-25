@@ -2,6 +2,7 @@
 
 Subcommands:
   assistant                  focus/cycle HIVE_AGENT_DEFAULT assistant tabs
+  assistant-start            create the initial assistant, then focus the editor
   assistant-shell <name>     run one assistant pane
   assistant-spawn            create another HIVE_AGENT_DEFAULT assistant tab
   pane <label> <cmd> [args…]  title the pane "<label> - <project>", then exec cmd
@@ -29,6 +30,10 @@ def cmd_assistant(args: argparse.Namespace) -> int:
 
 def cmd_assistant_shell(args: argparse.Namespace) -> int:
     return assistants.shell(args.name)
+
+
+def cmd_assistant_start(args: argparse.Namespace) -> int:
+    return assistants.start()
 
 
 def cmd_assistant_toggle(args: argparse.Namespace) -> int:
@@ -158,6 +163,8 @@ def main(argv: list[str] | None = None) -> int:
 
     sub.add_parser("assistant", help="focus/cycle HIVE_AGENT_DEFAULT assistant tabs").set_defaults(
         func=cmd_assistant)
+    sub.add_parser("assistant-start", help="create the initial assistant and focus the editor").set_defaults(
+        func=cmd_assistant_start)
     ash = sub.add_parser("assistant-shell", help="run one assistant pane (layout use)")
     ash.add_argument("name")
     ash.set_defaults(func=cmd_assistant_shell)
