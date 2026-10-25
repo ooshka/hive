@@ -16,6 +16,25 @@ copy_clipboard "system"
 // Keep pane frames so panes (assistant / editor / lazygit) are labelled.
 pane_frames true
 
+// Use muted highlights for clients attached to the same session. Zellij 0.44
+// assigns these palette entries to clients in green, cyan, magenta order.
+themes {
+    hive-pastel {
+        fg 7
+        bg 0
+        black 0
+        red 1
+        green 118 171 174   // mild teal (#76ABAE)
+        yellow 3
+        blue 4
+        magenta 216 167 177 // muted pink (#D8A7B1)
+        cyan 163 190 140    // muted green (#A3BE8C)
+        white 7
+        orange 208
+    }
+}
+theme "hive-pastel"
+
 // Custom keybinds are MERGED on top of the defaults (defaults stay intact).
 // Jump straight to a tool's tab. Alt-based (not Ctrl-) to avoid clobbering
 // nvim's Ctrl- keys. Switching tabs never restarts the tool in that tab.
