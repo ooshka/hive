@@ -1,7 +1,6 @@
 // "agent" workspace layout — launch with: zellij --layout agent  (or via `hive open`)
 //
-//   Hive starts one HIVE_AGENT_DEFAULT assistant tab, with nvim focused.
-//   Add more assistants with Alt-a.
+//   Hive starts one HIVE_AGENT_DEFAULT assistant tab. Add more with Alt-a.
 //   Alt-1 focuses the assistant area, cycling through assistant tabs when
 //   already there.
 //
@@ -15,15 +14,15 @@
 // zellij is launched from.
 
 layout {
-    tab name="assistant-start" {
+    tab name="assistant-start" focus=true {
         pane {
             name "assistant-start"
             command "hive"
             close_on_exit true
-            args "assistant-start"
+            args "assistant"
         }
     }
-    tab name="edit" focus=true {
+    tab name="edit" {
         pane {
             name "editor"
             command "hive"

@@ -124,7 +124,8 @@ def _close_bootstrap() -> None:
         run(["zellij", "action", "close-tab", "--tab-id", bootstrap_id], timeout=5)
 
 
-def _spawn(*, close_bootstrap: bool) -> int:
+def spawn() -> int:
+    """Create another tab running HIVE_AGENT_DEFAULT."""
     default = _default()
     if default is None:
         return 2
@@ -136,22 +137,6 @@ def _spawn(*, close_bootstrap: bool) -> int:
     rc, _ = run(args, timeout=5)
     if rc != 0:
         return rc
-    if close_bootstrap:
-        _close_bootstrap()
-    return 0
-
-
-def spawn() -> int:
-    """Create another tab running HIVE_AGENT_DEFAULT."""
-    return _spawn(close_bootstrap=True)
-
-
-def start() -> int:
-    """Create the initial assistant tab, then leave the editor focused."""
-    rc = _spawn(close_bootstrap=False)
-    if rc != 0:
-        return rc
-    run(["zellij", "action", "go-to-tab-name", "edit"], timeout=5)
     _close_bootstrap()
     return 0
 

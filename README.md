@@ -57,8 +57,7 @@ and focus existing panes without launching temporary command panes.
 Subcommands: `pane` (layout launcher), `tab` (named tab focus), `open`
 (shell-side), and `switch` / `close` (in-zellij; `close` is bound to `Alt-w`). The
 zellij config calls `hive` directly — e.g. the layout runs
-`command "hive"  args "assistant-start"`; it creates the initial assistant in
-the background and leaves the nvim tab focused.
+`command "hive"  args "assistant"`.
 Because `hive` resolves the repo from its symlink, only `bin/hive` is symlinked;
 the package stays in the repo, so a `git pull` updates the logic with no reinstall.
 

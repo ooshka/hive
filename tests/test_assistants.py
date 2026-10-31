@@ -23,26 +23,6 @@ class AssistantTests(unittest.TestCase):
         ], timeout=5)
         close_bootstrap.assert_called_once_with()
 
-    def test_start_spawns_assistant_then_focuses_editor(self):
-        with patch.object(assistants, "_spawn", return_value=0) as spawn, \
-                patch.object(assistants, "run", return_value=(0, "")) as run, \
-                patch.object(assistants, "_close_bootstrap") as close_bootstrap:
-            self.assertEqual(assistants.start(), 0)
-
-        spawn.assert_called_once_with(close_bootstrap=False)
-        run.assert_called_once_with(
-            ["zellij", "action", "go-to-tab-name", "edit"], timeout=5)
-        close_bootstrap.assert_called_once_with()
-
-    def test_start_does_not_change_focus_when_spawn_fails(self):
-        with patch.object(assistants, "_spawn", return_value=1), \
-                patch.object(assistants, "run") as run, \
-                patch.object(assistants, "_close_bootstrap") as close_bootstrap:
-            self.assertEqual(assistants.start(), 1)
-
-        run.assert_not_called()
-        close_bootstrap.assert_not_called()
-
     def test_default_uses_claude_when_unset(self):
         with patch.dict(os.environ, {}, clear=True):
             self.assertEqual(assistants._default(), "claude")
