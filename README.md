@@ -49,13 +49,13 @@ and focus existing panes without launching temporary command panes.
 | `hivelib/assistants.py` | default assistant tab spawning, focus/cycle, and missing-tool messages |
 | `hivelib/util.py`       | ANSI colour, age/string formatting, `run()`, `pgrep` |
 | `hivelib/projects.py`   | project-root scanning, name sanitisation |
-| `hivelib/zellij.py`     | thin zellij CLI wrappers (sessions, switch, rename-pane, new-pane) |
-| `hivelib/picker.py`     | shared fzf wrapper (open / switch) |
+| `hivelib/zellij.py`     | thin zellij CLI wrappers (sessions, rename-pane, new-pane) |
+| `hivelib/picker.py`     | shared fzf wrapper (open / close) |
 | `hivelib/zellij_permissions.py` | pre-seeds `hive-orchestrator`'s permission grant for `install.sh` |
 | `plugins/hive-orchestrator` | Rust/WASM Zellij plugin for assistant/editor split focus |
 
 Subcommands: `pane` (layout launcher), `tab` (named tab focus), `open`
-(shell-side), and `switch` / `close` (in-zellij; `close` is bound to `Alt-w`). The
+(shell-side), and `close` (in-zellij, bound to `Alt-w`). The
 zellij config calls `hive` directly — e.g. the layout runs
 `command "hive"  args "assistant"`.
 Because `hive` resolves the repo from its symlink, only `bin/hive` is symlinked;
@@ -131,17 +131,15 @@ Every project is a named zellij session. The key distinction:
 
 | Action | How | Result |
 |--------|-----|--------|
-| **Open a project** (new or existing) | `hive switch` inside zellij, or `hive` from a shell | Switches to it; starts a fresh `agent` session if it wasn't running |
-| **Switch to another open project** | `hive switch` | Jumps there; the one you leave keeps running |
-| **Leave it running (no switch)** | `Alt-d` (detach) | Session + processes keep running in the background |
+| **Open a project** (new or existing) | `hive` / `hive open` from a shell | Attaches to it; starts a fresh `agent` session if it wasn't running |
+| **Leave it running** | `Alt-d` (detach) | Session + processes keep running in the background |
 | **Close the current project** | `Alt-w` | Switches to another live session, then ends this one — stays in zellij |
 | **End + leave zellij** | `Ctrl-q`, close the terminal, or `zellij kill-session <name>` | Stops cleanly — no lingering `(EXITED)` stub (`session_serialization false`) |
 
-So "close a session without killing it" → **switch away** (`hive switch`) or **detach**
-(`Alt-d`). To **end** it but stay in hive, use `Alt-w`. Come back to a detached
-session via `hive switch`, `hive open <name>`, or `zellij attach <name>`.
+So "close a session without killing it" → **detach** (`Alt-d`). To **end** it but stay in hive, use `Alt-w`. Come back to a detached
+session via `hive open <name>` or `zellij attach <name>`.
 
-Both `hive`/`hive open` (shell) and `hive switch` (in-zellij) only *reattach* to a
+`hive`/`hive open` only *reattach* to a
 **live** session; a closed/absent name is rebuilt **fresh** from `agent.kdl`.
 
 > Changed `agent.kdl`? A *live* session keeps the old layout until you end it
@@ -149,7 +147,7 @@ Both `hive`/`hive open` (shell) and `hive switch` (in-zellij) only *reattach* to
 
 ## Configuration
 
-- **Project roots** — `hive open`/`switch` scan `~/projects` by default. Override
+- **Project roots** — `hive open` scans `~/projects` by default. Override
   per-shell with `export PROJ_ROOTS="/path/a:/path/b"`, or uncomment the line in
   `shell/agent-workflow.sh`.
 - **Assistant tabs** — set `HIVE_AGENT_DEFAULT=claude` or `codex` to choose

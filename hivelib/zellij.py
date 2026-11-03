@@ -49,17 +49,6 @@ def kill_session(name: str) -> None:
     run(["zellij", "kill-session", name], timeout=5)
 
 
-def exec_switch_session(name: str, cwd: str | None = None, layout: str | None = None) -> None:
-    """Switch to (or create, if absent) a session, replacing this process."""
-    args = ["zellij", "action", "switch-session"]
-    if cwd:
-        args += ["-c", cwd]
-    if layout:
-        args += ["-l", layout]
-    args.append(name)
-    os.execvp("zellij", args)
-
-
 def exec_new_pane(cmd: list[str], *, floating: bool = False, cwd: str | None = None,
                   name: str | None = None, close_on_exit: bool = False) -> None:
     """Open a new pane running `cmd`, replacing this process."""

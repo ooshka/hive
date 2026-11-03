@@ -14,7 +14,7 @@ class CliTests(unittest.TestCase):
         self.assertEqual(cm.exception.code, 0)
         help_text = out.getvalue()
         self.assertIn("assistant", help_text)
-        self.assertIn("switch", help_text)
+        self.assertIn("open", help_text)
         self.assertIn("close", help_text)
         self.assertNotIn("fleet", help_text)
         self.assertNotIn("agents", help_text)

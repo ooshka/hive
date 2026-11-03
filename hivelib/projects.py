@@ -1,4 +1,4 @@
-"""Project discovery for the `open`/`switch` pickers (mirrors the old `proj`)."""
+"""Project discovery for the `open` picker (mirrors the old `proj`)."""
 from __future__ import annotations
 
 import os

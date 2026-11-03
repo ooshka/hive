@@ -1,4 +1,4 @@
-"""fzf wrapper shared by the open / switch pickers."""
+"""fzf wrapper for the hive pickers."""
 from __future__ import annotations
 
 import subprocess

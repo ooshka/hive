@@ -7,7 +7,6 @@ Subcommands:
   pane <label> <cmd> [args…]  title the pane "<label> - <project>", then exec cmd
   tab <name>                  focus a named tab
   open [query]                open/attach a project session (run from a shell)
-  switch                      open or switch projects (inside zellij)
   close                       close current project, stay in zellij (Alt-w)
 """
 from __future__ import annotations
@@ -19,7 +18,7 @@ import time
 
 from . import assistants, projects, zellij
 from .picker import fzf
-from .util import paint, run, GREEN
+from .util import run
 
 
 # ── assistant tab ──────────────────────────────────────────────────────────
@@ -65,7 +64,7 @@ def cmd_tab(args: argparse.Namespace) -> int:
 # ── open: shell-side project launcher (the old `proj`) ──────────────────────
 def cmd_open(args: argparse.Namespace) -> int:
     if zellij.inside():
-        print("Inside zellij — run hive switch to open/switch projects.", file=sys.stderr)
+        print("Already inside zellij — run hive open from a plain shell.", file=sys.stderr)
         return 1
     if args.query and os.path.isdir(args.query):
         selected = os.path.realpath(args.query)
@@ -84,43 +83,6 @@ def cmd_open(args: argparse.Namespace) -> int:
     return 0  # unreachable
 
 
-# ── switch: open OR switch projects from inside zellij (the old `zswitch`) ──
-def cmd_switch(args: argparse.Namespace) -> int:
-    if not zellij.inside():
-        print("hive switch only works inside zellij.", file=sys.stderr)
-        return 1
-    current = zellij.session_name()
-    live = set(zellij.live_sessions())
-    lines: list[str] = []
-    seen: set[str] = set()
-    for p in projects.list_projects():
-        name = projects.sanitize(p)
-        if name == current:
-            continue
-        seen.add(name)
-        icon = paint(GREEN, "●") if name in live else " "
-        lines.append(f"{icon} {name}\t{name}\t{p}")
-    for s in sorted(live):
-        if s == current or s in seen:
-            continue
-        lines.append(f"{paint(GREEN, '●')} {s}\t{s}\t")
-
-    if not lines:
-        print("No other projects or live sessions to open/switch to.")
-        input("(press Enter to close) ")
-        return 0
-    res = fzf(lines, prompt="open/switch> ", delimiter="\t", with_nth="1")
-    if not res:
-        return 0
-    fields = res[1].split("\t")
-    name, path = fields[1], (fields[2] if len(fields) > 2 else "")
-    if name in live or not path:
-        zellij.exec_switch_session(name)             # live → just switch
-    else:
-        zellij.exec_switch_session(name, cwd=path, layout="agent")  # new → create + switch
-    return 0  # unreachable
-
-
 # ── close: end the current project, switch to another (the old `zclose`) ────
 def cmd_close(args: argparse.Namespace) -> int:
     if not zellij.inside():
@@ -130,7 +92,7 @@ def cmd_close(args: argparse.Namespace) -> int:
     others = [s for s in zellij.live_sessions() if s != current]
     if not others:
         print(f"Closing '{current}' would leave no live session to land on.")
-        print("Open another first with hive switch, or quit zellij with Ctrl-q.")
+        print("Open another first with hive open from a shell, or quit zellij with Ctrl-q.")
         input("(press Enter to cancel) ")
         return 0
     if len(others) == 1:
@@ -179,7 +141,6 @@ def main(argv: list[str] | None = None) -> int:
     o.add_argument("query", nargs="?")
     o.set_defaults(func=cmd_open)
 
-    sub.add_parser("switch", help="open or switch projects (inside zellij)").set_defaults(func=cmd_switch)
     sub.add_parser("close", help="close current project, stay in zellij").set_defaults(func=cmd_close)
 
     args = p.parse_args(argv)

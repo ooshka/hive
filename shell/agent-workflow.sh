@@ -21,7 +21,7 @@ alias agent='zellij --layout agent'   # ad-hoc agent workspace in $PWD
 # Everything is the `hive` CLI (run `hive --help`). Bare `hive` opens the project
 # switcher; the rest are zellij keybinds (Alt-s/w).
 
-# Project roots for `hive`/`switch` (colon-separated); default is ~/projects.
+# Project roots for `hive` (colon-separated); default is ~/projects.
 # Override per-machine by uncommenting / editing:
 # export PROJ_ROOTS="$HOME/projects:/mnt/c/Users/$USER/IdeaProjects"
 #
